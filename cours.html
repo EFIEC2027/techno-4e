@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Les cours · 4e</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css?v=20261015a">
+<style>
+body { min-height: 100vh; }
+.barre .droite { margin-left: auto; }
+.onglets { display: flex; gap: .3rem; padding: 0 16px; background: var(--papier); border-bottom: 1px solid var(--trait); overflow-x: auto; }
+.onglets button { border: 0; background: none; font: 700 1.05rem var(--f-texte); color: var(--doux); padding: .85rem 1.1rem; border-bottom: 4px solid transparent; cursor: pointer; white-space: nowrap; }
+.onglets button:hover { color: var(--encre); }
+.onglets button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+main { max-width: 860px; margin: 0 auto; padding: 1.6rem 16px 5rem; display: grid; gap: 1.2rem; }
+.intro h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 800; }
+.intro p { margin: .3rem 0 0; color: var(--doux); }
+.sommaire { display: flex; flex-wrap: wrap; gap: .4rem; }
+.sommaire a { text-decoration: none; color: var(--encre); background: var(--papier); border: 1.5px solid var(--trait); border-radius: 99px; padding: .25rem .8rem; font-size: .9rem; }
+.sommaire a:hover { border-color: var(--accent); }
+.lecon { background: var(--papier); border: 1px solid var(--trait); border-radius: 12px; padding: 1.2rem 1.3rem; scroll-margin-top: 1rem; }
+.lecon .num { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-weight: 700; }
+.lecon h2 { font-size: 1.45rem; font-weight: 800; margin-top: .15rem; }
+.lecon .texte { max-width: 72ch; }
+.lecon .texte p { margin: .55rem 0; }
+.lecon table.ops { border-collapse: collapse; margin: .5rem 0; } .lecon table.ops td { padding: .3rem .8rem .3rem 0; vertical-align: top; }
+.lien-exos { display: inline-block; margin-top: .6rem; font-weight: 700; color: var(--accent); }
+.cours-schema { background: var(--fond); border-radius: 10px; padding: .6rem; }
+@media print { .barre, .onglets, .sommaire, .lien-exos { display: none; } body { background: #fff; } .lecon { break-inside: avoid; } }
+</style>
+</head>
+<body>
+<header class="barre">
+  <div class="marque">Les cours <span>4e</span></div>
+  <nav class="onglets-haut droite" aria-label="Navigation">
+    <a href="index.html">← Accueil</a><a href="exercices.html?p=algo">Exercices algorigrammes</a><a href="exercices.html?p=blocs">Exercices programmation</a>
+  </nav>
+</header>
+<div class="onglets" role="tablist" aria-label="Cours">
+  <button id="o-algo" role="tab" aria-controls="panneau" type="button">📖 Cours algorigrammes</button>
+  <button id="o-blocs" role="tab" aria-controls="panneau" type="button">📖 Cours programmation</button>
+</div>
+<main id="panneau" role="tabpanel">
+  <div class="intro"><h1 id="titre"></h1><p id="sous-titre"></p></div>
+  <nav class="sommaire" id="sommaire" aria-label="Sommaire"></nav>
+  <div id="lecons" style="display:grid;gap:1rem"></div>
+</main>
+<script src="blocs-moteur.js?v=20261015a"></script>
+<script src="schema.js?v=20261015a"></script>
+<script src="algorigrammes.js?v=20261015a"></script>
+<script src="blocs.js?v=20261015a"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const COURS = {
+  algo: { donnees: window.PARCOURS_ALGO, titre: "Cours : algorigrammes", sous: "Un algorigramme décrit le fonctionnement d'un objet avec un schéma : c'est l'algorithme, avant de le programmer.", exos: "exercices.html?p=algo" },
+  blocs: { donnees: window.PARCOURS_BLOCS, titre: "Cours : programmer un objet", sous: "Programmer avec des blocs les capteurs et les actionneurs d'un objet technique.", exos: "exercices.html?p=blocs" }
+};
+function afficher(nom) {
+  if (!COURS[nom]) nom = "algo";
+  const c = COURS[nom];
+  ["algo", "blocs"].forEach(n => $("o-" + n).setAttribute("aria-selected", String(n === nom)));
+  $("titre").textContent = c.titre; $("sous-titre").textContent = c.sous; document.title = c.titre + " · 4e";
+  const som = $("sommaire"), lec = $("lecons");
+  som.replaceChildren(); lec.replaceChildren();
+  c.donnees.forEach((m, i) => {
+    const ancre = `${nom}-${i + 1}`;
+    const a = document.createElement("a");
+    a.href = "#" + ancre; a.textContent = `${i + 1}. ${m.titre}`;
+    a.addEventListener("click", ev => { ev.preventDefault(); document.getElementById(ancre).scrollIntoView({ behavior: "smooth" }); });
+    som.appendChild(a);
+    const s = document.createElement("section");
+    s.className = "lecon"; s.id = ancre;
+    s.innerHTML = `<div class="num"></div><h2></h2><div class="texte"></div>`;
+    s.querySelector(".num").textContent = `Notion ${i + 1} · ${m.notion}`;
+    s.querySelector("h2").textContent = m.titre;
+    s.querySelector(".texte").innerHTML = m.cours + (m.schemaCours ? `<div class="cours-schema">${Schema.dessiner(m.schemaCours)}</div>` : "");
+    const l = document.createElement("a");
+    l.className = "lien-exos"; l.href = c.exos; l.textContent = `Faire les exercices ${i + 1}.1 à ${i + 1}.${m.exercices.length} →`;
+    s.appendChild(l);
+    lec.appendChild(s);
+  });
+}
+const depuisAdresse = () => afficher(location.hash.replace("#", "").split("-")[0]);
+["algo", "blocs"].forEach(n => $("o-" + n).addEventListener("click", () => { history.replaceState(null, "", "#" + n); afficher(n); window.scrollTo(0, 0); }));
+window.addEventListener("hashchange", depuisAdresse);
+depuisAdresse();
+</script>
+</body>
+</html>

@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Suivi Techno 4e</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Mise en page : barre de filtres, onglets, puis résumé chiffré avant le détail. */
+:root {
+  --fond: #eef3f2; --papier: #ffffff; --encre: #13232b; --doux: #56686f; --trait: #d3dfe0;
+  --accent: #0d6a6a; --accent-fort: #0a5252; --surligne: #f2c230; --surligne-doux: #fbf0c8;
+  --ok: #1d8049; --ok-doux: #dcf1e4; --ko: #b93d2a; --ko-doux: #f8e1dc; --alerte: #a86a00; --alerte-doux: #fbecc9;
+  --serie-1: #0d6a6a; --serie-2: #c46a1a; --serie-3: #5b5bb5; --serie-4: #8a8f2a;
+  --chaud-0: #e9efee; --chaud-1: #cfe5e2; --chaud-2: #96cbc6; --chaud-3: #4aa59e; --chaud-4: #0d6a6a;
+  --f-titre: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-texte: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-code: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #0e171a; --papier: #152126; --encre: #e3ecec; --doux: #93a5aa; --trait: #2a3b41;
+    --accent: #4db3ab; --accent-fort: #7ccbc4; --surligne: #f0c645; --surligne-doux: #3b3420;
+    --ok: #52c483; --ok-doux: #173326; --ko: #f07b63; --ko-doux: #3a211c; --alerte: #f0b950; --alerte-doux: #3a2e14;
+    --serie-1: #4db3ab; --serie-2: #f09a50; --serie-3: #9d9cf0; --serie-4: #c4c95a;
+    --chaud-0: #1b292e; --chaud-1: #1d3f3e; --chaud-2: #22625f; --chaud-3: #2f8d86; --chaud-4: #59c2b9;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--fond); color: var(--encre); font: 15px/1.5 var(--f-texte); }
+button, input, select { font: inherit; color: inherit; }
+h1, h2, h3 { font-family: var(--f-titre); margin: 0; line-height: 1.15; text-wrap: balance; }
+:focus-visible { outline: 3px solid var(--surligne); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+.bouton { border: 1.5px solid var(--trait); background: var(--papier); border-radius: 8px; padding: .45rem .9rem; cursor: pointer; font-weight: 700; }
+.bouton:hover:not(:disabled) { border-color: var(--accent); }
+.bouton.plein { background: var(--accent); border-color: var(--accent); color: var(--papier); }
+.bouton:disabled { opacity: .5; cursor: progress; }
+
+/* Connexion */
+#ecran-cle { min-height: 100vh; display: grid; place-items: center; padding: 2rem 16px; }
+.carte-cle { width: min(400px, 100%); background: var(--papier); border: 1px solid var(--trait); border-radius: 16px; padding: 2rem 1.75rem; display: grid; gap: 1rem; }
+.carte-cle h1 { font-size: 1.8rem; font-weight: 800; }
+.carte-cle p { margin: 0; color: var(--doux); }
+.carte-cle input[type=password] { border: 1.5px solid var(--trait); border-radius: 8px; padding: .65rem .8rem; background: var(--fond); width: 100%; }
+.carte-cle label { font-weight: 700; display: grid; gap: .3rem; }
+.carte-cle label.case { display: flex; gap: .5rem; font-weight: 400; align-items: center; }
+.erreur { color: var(--ko); background: var(--ko-doux); border-radius: 8px; padding: .6rem .8rem; }
+
+/* En-tête */
+.barre { background: var(--papier); border-bottom: 1px solid var(--trait); padding: .8rem 16px 0; position: sticky; top: 0; z-index: 5; }
+.barre-haut { display: flex; flex-wrap: wrap; gap: .8rem 1.2rem; align-items: center; max-width: 1280px; margin-inline: auto; }
+.barre h1 { font-size: 1.3rem; font-weight: 800; }
+.barre h1 span { color: var(--accent); }
+.filtres { display: flex; gap: .4rem; flex-wrap: wrap; }
+.puce { border: 1.5px solid var(--trait); background: var(--fond); border-radius: 99px; padding: .25rem .8rem; cursor: pointer; font-weight: 700; font-size: .9rem; }
+.puce[aria-pressed=true] { background: var(--encre); color: var(--papier); border-color: var(--encre); }
+#choix-parcours .puce[aria-pressed=true] { background: var(--accent); border-color: var(--accent); }
+.droite { margin-left: auto; display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+.maj { color: var(--doux); font-size: .85rem; }
+.onglets { display: flex; gap: .2rem; max-width: 1280px; margin: .6rem auto 0; overflow-x: auto; }
+.onglet { border: 0; background: none; padding: .55rem .9rem; cursor: pointer; font-weight: 700; color: var(--doux); border-bottom: 3px solid transparent; white-space: nowrap; }
+.onglet[aria-selected=true] { color: var(--encre); border-bottom-color: var(--accent); }
+.bandeau-demo { margin: 1rem max(16px, calc((100% - 1248px) / 2)) 0; background: var(--surligne-doux); border-radius: 8px; padding: .6rem .9rem; }
+
+main { max-width: 1280px; margin-inline: auto; padding: 1.2rem 16px 4rem; display: grid; gap: 1.2rem; }
+.vue { display: grid; gap: 1.2rem; }
+.panneau { background: var(--papier); border: 1px solid var(--trait); border-radius: 12px; padding: 1rem 1.1rem; min-width: 0; }
+.panneau h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: .2rem; }
+.panneau .sous { color: var(--doux); font-size: .88rem; margin: 0 0 .8rem; }
+.grille-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 1.2rem; align-items: start; }
+
+.chiffres { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--trait); border: 1px solid var(--trait); border-radius: 12px; overflow: hidden; }
+.chiffre { background: var(--papier); padding: .9rem 1rem; display: grid; gap: .15rem; }
+.chiffre .val { font-family: var(--f-titre); font-size: 1.9rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.chiffre .val small { font-size: .5em; color: var(--doux); font-weight: 600; }
+.chiffre .lib { color: var(--doux); font-size: .88rem; }
+
+.graphe { position: relative; height: 280px; }
+.graphe.haut { height: 340px; }
+
+/* Élèves à surveiller */
+.alertes { display: grid; gap: .4rem; }
+.alerte { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .3rem 1rem; align-items: center; padding: .55rem .7rem; border-radius: 8px; background: var(--fond); cursor: pointer; border: 1.5px solid transparent; text-align: left; width: 100%; }
+.alerte:hover { border-color: var(--accent); }
+.alerte .qui { font-weight: 700; }
+.alerte .qui small { font-weight: 400; color: var(--doux); }
+.raisons { display: flex; gap: .3rem; flex-wrap: wrap; grid-column: 1 / -1; }
+.raison { font-size: .8rem; padding: .05rem .5rem; border-radius: 99px; background: var(--alerte-doux); color: var(--alerte); font-weight: 700; }
+.raison.grave { background: var(--ko-doux); color: var(--ko); }
+.vide { color: var(--doux); font-style: italic; padding: .5rem 0; }
+
+/* Tableaux */
+.defile { overflow-x: auto; }
+table.donnees { border-collapse: collapse; width: 100%; font-size: .9rem; }
+table.donnees th { text-align: left; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--doux); font-weight: 700; padding: .5rem .6rem; border-bottom: 1.5px solid var(--trait); white-space: nowrap; cursor: pointer; user-select: none; }
+table.donnees th[data-tri]::after { content: " ↕"; opacity: .35; }
+table.donnees th.tri-asc::after { content: " ↑"; opacity: 1; }
+table.donnees th.tri-desc::after { content: " ↓"; opacity: 1; }
+table.donnees td { padding: .45rem .6rem; border-bottom: 1px solid var(--trait); font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.donnees tbody tr { cursor: pointer; }
+table.donnees tbody tr:hover td { background: var(--fond); }
+td.nom { font-weight: 700; }
+td.nom small { font-weight: 400; color: var(--doux); display: block; font-family: var(--f-code); font-size: .75rem; }
+td.case-notion { padding: .3rem .15rem; text-align: center; }
+.cellule { display: inline-grid; place-items: center; width: 34px; height: 26px; border-radius: 5px; font-size: .78rem; font-weight: 700; font-family: var(--f-code); }
+.c0 { background: var(--chaud-0); color: var(--doux); }
+.c1 { background: var(--chaud-1); color: var(--encre); }
+.c2 { background: var(--chaud-2); color: var(--encre); }
+.c3 { background: var(--chaud-3); color: var(--papier); }
+.c4 { background: var(--chaud-4); color: var(--papier); }
+.legende { display: flex; gap: .8rem; align-items: center; flex-wrap: wrap; font-size: .82rem; color: var(--doux); margin-top: .7rem; }
+.legende .cellule { width: 26px; height: 18px; }
+.barre-mini { display: inline-block; width: 60px; height: 6px; background: var(--trait); border-radius: 9px; vertical-align: middle; margin-right: .4rem; overflow: hidden; }
+.barre-mini i { display: block; height: 100%; background: var(--accent); }
+.etat { font-size: .8rem; padding: .1rem .5rem; border-radius: 99px; font-weight: 700; }
+.etat.ok { background: var(--ok-doux); color: var(--ok); }
+.etat.encours { background: var(--alerte-doux); color: var(--alerte); }
+.etat.non { background: var(--chaud-0); color: var(--doux); }
+.etat.bloque { background: var(--ko-doux); color: var(--ko); }
+.ev-outils { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+select#choix-eval { border: 1.5px solid var(--trait); border-radius: 8px; padding: .4rem .6rem; background: var(--papier); max-width: 100%; }
+.ev-ouverte { display: inline-block; font-size: .8rem; font-weight: 700; padding: .1rem .55rem; border-radius: 99px; background: var(--ok-doux); color: var(--ok); margin-left: .4rem; vertical-align: .2em; }
+.ev-fermee { background: var(--chaud-0); color: var(--doux); }
+.incidents-liste { margin: 0; padding-left: 1.2rem; }
+.rep-question { border: 1px solid var(--trait); border-radius: 8px; overflow: hidden; }
+.rep-question header { display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; padding: .4rem .7rem; background: var(--fond); font-size: .9rem; }
+.rep-question header .pts { font-weight: 700; font-variant-numeric: tabular-nums; }
+.rep-question pre { margin: 0; padding: .6rem .8rem; font-family: var(--f-code); font-size: .85rem; overflow-x: auto; white-space: pre-wrap; }
+.rep-question.plein header { background: var(--ok-doux); }
+.rep-question.zero header { background: var(--ko-doux); }
+.detail-grille { display: grid; gap: .6rem; }
+
+/* Fiche élève */
+.fiche-tete { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: end; }
+.fiche-tete h2 { font-size: 1.7rem; font-weight: 800; }
+.fiche-tete p { margin: .2rem 0 0; color: var(--doux); }
+select#choix-eleve { border: 1.5px solid var(--trait); border-radius: 8px; padding: .4rem .6rem; background: var(--papier); max-width: 100%; }
+.essais-code { display: grid; gap: .6rem; }
+.essai-code { border: 1px solid var(--trait); border-radius: 8px; overflow: hidden; }
+.essai-code header { display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; padding: .35rem .7rem; font-size: .85rem; background: var(--fond); }
+.essai-code pre { margin: 0; padding: .6rem .8rem; font-family: var(--f-code); font-size: .85rem; overflow-x: auto; }
+.essai-code.reussi header { background: var(--ok-doux); }
+
+.chargement { color: var(--doux); display: inline-flex; gap: .5rem; align-items: center; }
+.chargement::before { content: ""; width: 14px; height: 14px; border: 2px solid var(--trait); border-top-color: var(--accent); border-radius: 50%; animation: tourne .8s linear infinite; }
+@keyframes tourne { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .chargement::before { animation: none; } }
+@media (max-width: 640px) { .barre { position: static; } .droite { margin-left: 0; } .chiffre .val { font-size: 1.5rem; } }
+</style>
+</head>
+<body>
+
+<section id="ecran-cle">
+  <form class="carte-cle" id="form-cle">
+    <h1>Suivi <span style="color:var(--accent)">Techno 4e</span></h1>
+    <p>Tableau de bord enseignant. Saisissez le mot de passe défini dans la Google Sheet (menu « Techno 4e »).</p>
+    <label>Mot de passe <input type="password" id="cle" autocomplete="current-password" required></label>
+    <label class="case"><input type="checkbox" id="memoriser"> Rester connectée sur cet appareil</label>
+    <div class="erreur" id="erreur-cle" hidden></div>
+    <button class="bouton plein" id="b-cle" type="submit">Ouvrir le tableau de bord</button>
+  </form>
+</section>
+
+<div id="tableau" hidden>
+  <header class="barre">
+    <div class="barre-haut">
+      <h1>Suivi <span>Techno 4e</span></h1>
+      <div class="filtres" id="choix-parcours" role="group" aria-label="Parcours">
+        <button type="button" class="puce" data-parcours="algo" aria-pressed="false">Algorigrammes</button>
+        <button type="button" class="puce" data-parcours="blocs" aria-pressed="false">Programmer un objet</button>
+      </div>
+      <div class="filtres" id="filtres" role="group" aria-label="Classe"></div>
+      <div class="droite">
+        <span class="maj" id="maj"></span>
+        <button class="bouton" id="b-actualiser" type="button">Actualiser</button>
+        <button class="bouton" id="b-csv" type="button">Exporter CSV</button>
+      </div>
+    </div>
+    <nav class="onglets" role="tablist">
+      <button class="onglet" role="tab" data-vue="ensemble" aria-selected="true">Vue d'ensemble</button>
+      <button class="onglet" role="tab" data-vue="eleves" aria-selected="false">Élèves</button>
+      <button class="onglet" role="tab" data-vue="exercices" aria-selected="false">Exercices</button>
+      <button class="onglet" role="tab" data-vue="fiche" aria-selected="false">Fiche élève</button>
+      <button class="onglet" role="tab" data-vue="evaluation" aria-selected="false">Évaluation</button>
+    </nav>
+  </header>
+  <div class="bandeau-demo" id="bandeau-demo" hidden>Données fictives : le site n'est pas encore relié à la Google Sheet. Ce tableau montre à quoi ressembleront vos statistiques.</div>
+
+  <main>
+    <!-- Vue d'ensemble -->
+    <section class="vue" id="vue-ensemble">
+      <div class="chiffres" id="chiffres"></div>
+      <div class="panneau">
+        <h2>Progression dans le temps</h2>
+        <p class="sous" id="sous-progression">Nombre moyen d'exercices réussis par élève, jour après jour.</p>
+        <div class="graphe haut"><canvas id="g-progression"></canvas></div>
+      </div>
+      <div class="grille-2">
+        <div class="panneau">
+          <h2>Élèves à surveiller</h2>
+          <p class="sous">Inactifs depuis 7 jours, bloqués sur un exercice, ou nettement en retard sur la classe.</p>
+          <div class="alertes" id="alertes"></div>
+        </div>
+        <div class="panneau">
+          <h2>Où en sont les élèves</h2>
+          <p class="sous">Nombre d'élèves selon la dernière notion entièrement réussie.</p>
+          <div class="graphe"><canvas id="g-repartition"></canvas></div>
+        </div>
+      </div>
+      <div class="grille-2">
+        <div class="panneau">
+          <h2>Réussite par notion</h2>
+          <p class="sous">Part des exercices de chaque notion réussis, sur l'ensemble des élèves.</p>
+          <div class="graphe"><canvas id="g-notions"></canvas></div>
+        </div>
+        <div class="panneau">
+          <h2>Erreurs les plus fréquentes</h2>
+          <p class="sous">Sur les essais ratés : ce qui bloque le plus souvent.</p>
+          <div class="graphe"><canvas id="g-erreurs"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Élèves -->
+    <section class="vue" id="vue-eleves" hidden>
+      <div class="panneau">
+        <h2>Tous les élèves</h2>
+        <p class="sous">Chaque case indique le nombre d'exercices réussis dans la notion (sur 4). Cliquez sur un élève pour ouvrir sa fiche ; cliquez sur un titre de colonne pour trier.</p>
+        <div class="defile"><table class="donnees" id="t-eleves"></table></div>
+        <div class="legende"><span>Exercices réussis dans la notion :</span>
+          <span class="cellule c0">0</span><span class="cellule c1">1</span><span class="cellule c2">2</span><span class="cellule c3">3</span><span class="cellule c4">4</span></div>
+      </div>
+    </section>
+
+    <!-- Exercices -->
+    <section class="vue" id="vue-exercices" hidden>
+      <div class="panneau">
+        <h2>Difficulté des exercices</h2>
+        <p class="sous">Barres : part des élèves ayant tenté l'exercice qui l'ont réussi. Points : nombre moyen d'essais avant de réussir.</p>
+        <div class="graphe haut"><canvas id="g-exercices"></canvas></div>
+      </div>
+      <div class="panneau">
+        <h2>Détail par exercice</h2>
+        <div class="defile"><table class="donnees" id="t-exercices"></table></div>
+      </div>
+    </section>
+
+    <!-- Fiche élève -->
+    <section class="vue" id="vue-fiche" hidden>
+      <div class="panneau">
+        <div class="fiche-tete">
+          <div><h2 id="f-nom">Choisissez un élève</h2><p id="f-info"></p></div>
+          <select id="choix-eleve" aria-label="Élève"></select>
+        </div>
+      </div>
+      <div class="chiffres" id="f-chiffres"></div>
+      <div class="grille-2">
+        <div class="panneau">
+          <h2>Sa progression</h2>
+          <p class="sous">Exercices réussis cumulés, comparés à la moyenne de sa classe.</p>
+          <div class="graphe"><canvas id="g-eleve"></canvas></div>
+        </div>
+        <div class="panneau">
+          <h2>Ses erreurs</h2>
+          <p class="sous">Types d'erreurs sur ses essais ratés.</p>
+          <div class="graphe"><canvas id="g-eleve-erreurs"></canvas></div>
+        </div>
+      </div>
+      <div class="panneau">
+        <h2>Exercice par exercice</h2>
+        <div class="defile"><table class="donnees" id="t-fiche"></table></div>
+      </div>
+      <div class="panneau">
+        <h2>Code soumis</h2>
+        <p class="sous">Tous ses essais, du plus récent au plus ancien.</p>
+        <div id="f-codes"><button class="bouton" id="b-codes" type="button">Afficher le code de ses essais</button></div>
+      </div>
+    </section>
+
+    <!-- Évaluation -->
+    <section class="vue" id="vue-evaluation" hidden>
+      <div class="panneau">
+        <div class="fiche-tete">
+          <div><h2 id="ev-titre">Évaluation</h2><p class="sous" id="ev-info"></p></div>
+          <div class="ev-outils">
+            <select id="choix-eval" aria-label="Évaluation"></select>
+            <button class="bouton" id="b-csv-eval" type="button">Exporter les notes</button>
+          </div>
+        </div>
+      </div>
+      <div class="chiffres" id="ev-chiffres"></div>
+      <div class="panneau">
+        <h2>Copies</h2>
+        <p class="sous">Actualisé toutes les 30 secondes tant que cet onglet est ouvert. Cliquez sur un élève pour voir ses réponses et ses incidents.</p>
+        <div class="defile"><table class="donnees" id="t-eval"></table></div>
+      </div>
+      <div class="panneau" id="ev-detail" hidden>
+        <h2 id="evd-nom"></h2>
+        <p class="sous" id="evd-info"></p>
+        <div id="evd-incidents"></div>
+        <div class="detail-grille" id="evd-reponses"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="config.js?v=20261015a"></script>
+<script src="evaluations.js?v=20261015a"></script>
+<script>window.PARCOURS_PYTHON = window.PARCOURS;</script>
+<script src="algorigrammes.js?v=20261015a"></script>
+<script src="blocs-moteur.js?v=20261015a"></script>
+<script src="blocs.js?v=20261015a"></script>
+<script>
+"use strict";
+const URL_SERVEUR = (window.CONFIG && CONFIG.url || "").trim();
+const DEMO = !URL_SERVEUR;
+const $ = id => document.getElementById(id);
+/* Deux parcours suivis : Programmer un objet (blocs.js) et Algorigrammes (algorigrammes.js). */
+const LES_PARCOURS = { blocs: { nom: "Programmer un objet", liste: window.PARCOURS_BLOCS || [] }, algo: { nom: "Algorigrammes", liste: window.PARCOURS_ALGO || [] } };
+let PARCOURS_ACTIF = "python";
+let EXOS = [], IDX_EXO = {}, NB = 0;
+function definirParcours(cle) {
+  PARCOURS_ACTIF = cle;
+  window.PARCOURS = LES_PARCOURS[cle].liste;
+  EXOS = PARCOURS.flatMap((m, im) => m.exercices.map((e, ie) => ({ id: e.id, titre: e.titre, im, num: `${im + 1}.${ie + 1}` })));
+  IDX_EXO = Object.fromEntries(EXOS.map((e, i) => [e.id, i]));
+  NB = EXOS.length;
+  const sous = document.getElementById("sous-progression");
+  if (sous) sous.textContent = `Nombre moyen d'exercices réussis par élève, jour après jour (sur ${NB}).`;
+  document.querySelectorAll("#choix-parcours .puce").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.parcours === cle)));
+}
+definirParcours("blocs");
+const JOUR = 86400000;
+const NOMS_ERREURS = {
+  Sortie: "Affichage incorrect", Comportement: "Fonctionnement incorrect", Consigne: "Consigne non respectée", SyntaxError: "Erreur d'écriture",
+  IndentationError: "Indentation", TabError: "Indentation", NameError: "Nom inconnu", TypeError: "Texte et nombre mélangés",
+  ValueError: "Conversion impossible", Expire: "Boucle sans fin", SortieTropLongue: "Boucle sans fin",
+  EOFError: "Trop d'input()", ZeroDivisionError: "Division par zéro", Reponse: "Mauvaise réponse"
+};
+const nomErreur = t => NOMS_ERREURS[t] || "Autre erreur";
+
+const store = {
+  lire(k) { try { return localStorage.getItem(k) || sessionStorage.getItem(k); } catch { return null; } },
+  ecrire(k, v, durable) { try { (durable ? localStorage : sessionStorage).setItem(k, v); } catch {} },
+  suppr(k) { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch {} }
+};
+
+let CLE = null;
+let BRUT = null;          // { eleves, essais, genere }
+let CLASSE = "toutes";
+let ELEVE_FICHE = null;
+const graphes = {};
+
+/* ---------------- Données de démonstration ---------------- */
+function donneesDemo() {
+  let graine = 7;
+  const alea = () => (graine = (graine * 16807) % 2147483647) / 2147483647;
+  const prenoms = ["Adam","Lina","Yanis","Sofia","Rayan","Inès","Ilyes","Salma","Nassim","Jade","Mehdi","Léa","Karim","Nour","Hugo","Yasmine","Anas","Chloé","Omar","Maya","Ziad","Rania","Tom","Aya","Sami","Clara"];
+  const eleves = [], essais = [];
+  const debut = new Date(); debut.setHours(9, 0, 0, 0);
+  const t0 = debut.getTime() - 34 * JOUR;
+  ["2nde A", "2nde B"].forEach((classe, ic) => {
+    prenoms.forEach((p, i) => {
+      const id = `efi26_${ic ? "b" : "a"}${String(i + 1).padStart(2, "0")}`;
+      eleves.push({ id, classe, prenom: p, nom: String.fromCharCode(65 + ((i * 7 + ic * 3) % 26)) + "." });
+      const niveau = 0.2 + alea() * 0.7;
+      const decroche = alea() < 0.12;
+      let k = 0;
+      for (let s = 0; s < 5; s++) {
+        if (decroche && s >= 2) break;
+        const seance = t0 + s * 7 * JOUR + ic * JOUR;
+        let t = seance + alea() * 600000;
+        let budget = 28 + alea() * 14;  // minutes de travail
+        while (budget > 0 && k < NB) {
+          const difficulte = 0.15 + EXOS[k].im * 0.06 + (k % 4) * 0.03;
+          const p = Math.max(0.08, Math.min(0.92, niveau - difficulte + 0.25));
+          let reussi = false, n = 0;
+          while (!reussi && n < 9 && budget > 0) {
+            n++;
+            reussi = alea() < p;
+            const duree = Math.round(60 + alea() * 240 * (1 + difficulte));
+            t += duree * 1000; budget -= duree / 60;
+            const err = reussi ? "" : ["Sortie","Sortie","SyntaxError","IndentationError","NameError","TypeError","Consigne","Expire","ValueError"][Math.floor(alea() * (k < 8 ? 5 : 9))];
+            essais.push([t, id, EXOS[k].id, reussi ? 1 : 0, reussi ? 3 : Math.floor(alea() * 3), 3, duree, err]);
+          }
+          if (reussi) k++; else break;
+        }
+        if (k < NB && alea() < 0.3) {  // un peu de travail à la maison
+          let t2 = seance + (2 + alea() * 3) * JOUR;
+          const reussi = alea() < niveau;
+          essais.push([t2, id, EXOS[k].id, reussi ? 1 : 0, reussi ? 3 : 1, 3, 300, reussi ? "" : "Sortie"]);
+          if (reussi) k++;
+        }
+      }
+    });
+  });
+  essais.sort((a, b) => a[0] - b[0]);
+  return { eleves, essais, evaluations: evaluationsDemo(eleves, alea), genere: Date.now() };
+}
+function codesDemo(id) {
+  return BRUT.essais.filter(e => e[1] === id).map(e => ({
+    t: e[0], exo: e[2], reussi: e[3], erreur: e[7],
+    code: e[3] ? "quand le système démarre\nrépéter indéfiniment\n  (exemple de programme réussi)" : "quand le système démarre\n  (exemple de programme avec une erreur)"
+  }));
+}
+
+/* ---------------- Connexion et chargement ---------------- */
+async function charger() {
+  $("maj").innerHTML = '<span class="chargement">Chargement…</span>';
+  $("b-actualiser").disabled = true;
+  try {
+    if (DEMO) BRUT = donneesDemo();
+    else {
+      const r = await fetch(URL_SERVEUR + "?" + new URLSearchParams({ action: "donnees", cle: CLE }));
+      const d = await r.json();
+      if (!d.ok) { if (d.erreur === "mot_de_passe") { store.suppr("pyclasse:cle"); location.reload(); } throw new Error(d.erreur); }
+      BRUT = d;
+    }
+    $("maj").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    dessinerFiltres();
+    toutDessiner();
+  } catch (e) {
+    $("maj").textContent = "Chargement impossible. Vérifiez la connexion, puis « Actualiser ».";
+  }
+  $("b-actualiser").disabled = false;
+}
+
+$("form-cle").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const cle = $("cle").value;
+  $("b-cle").disabled = true;
+  $("erreur-cle").hidden = true;
+  try {
+    const r = await fetch(URL_SERVEUR + "?" + new URLSearchParams({ action: "donnees", cle }));
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.erreur);
+    CLE = cle;
+    store.ecrire("pyclasse:cle", cle, $("memoriser").checked);
+    ouvrir();
+  } catch (e) {
+    $("erreur-cle").textContent = String(e.message) === "mot_de_passe"
+      ? "Mot de passe incorrect."
+      : "Le serveur ne répond pas. Vérifiez l'adresse du script dans config.js et la connexion Internet.";
+    $("erreur-cle").hidden = false;
+  }
+  $("b-cle").disabled = false;
+});
+
+function ouvrir() {
+  $("ecran-cle").hidden = true;
+  $("tableau").hidden = false;
+  $("bandeau-demo").hidden = !DEMO;
+  charger();
+}
+$("b-actualiser").addEventListener("click", charger);
+setInterval(() => { if (!document.hidden && BRUT && $("vue-evaluation").hidden) charger(); }, 5 * 60000);
+setInterval(() => { if (!document.hidden && BRUT && !$("vue-evaluation").hidden && !DEMO) charger(); }, 30000);
+
+/* ---------------- Calculs ---------------- */
+function calculer() {
+  const elevesTous = BRUT.eleves;
+  const eleves = elevesTous.filter(e => CLASSE === "toutes" || e.classe === CLASSE);
+  const parId = Object.fromEntries(eleves.map(e => [e.id, {
+    ...e, essais: 0, reussis: 0, temps: 0, derniere: null, premiere: null, exos: {}, erreurs: {}, premiersOk: 0, tentes: 0, datesReussite: []
+  }]));
+  for (const [t, id, exo, ok, , , duree, err] of BRUT.essais) {
+    const s = parId[id];
+    if (!s || !(exo in IDX_EXO)) continue;
+    s.essais++; s.temps += duree || 0;
+    s.derniere = Math.max(s.derniere || 0, t);
+    s.premiere = Math.min(s.premiere || Infinity, t);
+    let x = s.exos[exo];
+    if (!x) { x = s.exos[exo] = { essais: 0, reussi: false, essaisAvant: 0, temps: 0, tReussi: null, premierOk: !!ok, dernier: t, echecsDepuis: 0, erreurs: {} }; s.tentes++; if (ok) s.premiersOk++; }
+    x.essais++; x.temps += duree || 0; x.dernier = t;
+    if (!x.reussi) {
+      x.essaisAvant++;
+      if (ok) { x.reussi = true; x.tReussi = t; s.reussis++; s.datesReussite.push(t); x.echecsDepuis = 0; }
+      else x.echecsDepuis++;
+    }
+    if (!ok) { s.erreurs[err || "Sortie"] = (s.erreurs[err || "Sortie"] || 0) + 1; x.erreurs[err || "Sortie"] = (x.erreurs[err || "Sortie"] || 0) + 1; }
+  }
+  const liste = Object.values(parId);
+  liste.forEach(s => {
+    s.parNotion = PARCOURS.map(m => m.exercices.filter(e => s.exos[e.id] && s.exos[e.id].reussi).length);
+    s.niveau = 0;
+    while (s.niveau < PARCOURS.length && s.parNotion[s.niveau] === PARCOURS[s.niveau].exercices.length) s.niveau++;
+    s.tauxPremier = s.tentes ? s.premiersOk / s.tentes : null;
+  });
+  return liste;
+}
+
+function mediane(v) { if (!v.length) return 0; const s = [...v].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+function joursEntre(a, b) { return Math.floor((b - a) / JOUR); }
+function jourCle(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function dateCourte(t) { return new Date(t).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }); }
+function dateHeure(t) { return new Date(t).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+function duree(s) { if (!s) return "0 min"; const m = Math.round(s / 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}`; }
+function pct(x) { return x === null || isNaN(x) ? "—" : Math.round(100 * x) + " %"; }
+function depuis(t) {
+  if (!t) return "jamais";
+  const j = joursEntre(jourCle(t), jourCle(Date.now()));
+  return j === 0 ? "aujourd'hui" : j === 1 ? "hier" : `il y a ${j} j`;
+}
+function nomComplet(s) { return [s.prenom, s.nom].filter(Boolean).join(" ") || s.id; }
+
+function alertesPour(s, medianeReussis) {
+  const r = [];
+  if (!s.derniere) r.push({ t: "Jamais connecté", grave: true });
+  else if (Date.now() - s.derniere > 7 * JOUR) r.push({ t: `Inactif depuis ${joursEntre(s.derniere, Date.now())} jours`, grave: Date.now() - s.derniere > 14 * JOUR });
+  Object.entries(s.exos).forEach(([exo, x]) => {
+    if (!x.reussi && x.echecsDepuis >= 5) r.push({ t: `Bloqué sur ${EXOS[IDX_EXO[exo]].num} (${x.echecsDepuis} essais)`, grave: x.echecsDepuis >= 8 });
+  });
+  if (s.derniere && medianeReussis >= 6 && s.reussis < medianeReussis * 0.5) r.push({ t: `En retard : ${s.reussis} réussis (médiane ${Math.round(medianeReussis)})`, grave: s.reussis < medianeReussis * 0.3 });
+  return r;
+}
+
+/* ---------------- Graphiques ---------------- */
+const POLICE = () => couleur("--f-texte");
+function couleur(nom) { return getComputedStyle(document.documentElement).getPropertyValue(nom).trim(); }
+function baseOptions(extra = {}) {
+  const doux = couleur("--doux"), trait = couleur("--trait");
+  return Object.assign({
+    responsive: true, maintainAspectRatio: false, animation: matchMedia("(prefers-reduced-motion: reduce)").matches ? false : { duration: 400 },
+    plugins: { legend: { labels: { color: couleur("--encre"), boxWidth: 12, boxHeight: 12, font: { family: POLICE() } } },
+               tooltip: { titleFont: { family: POLICE() }, bodyFont: { family: POLICE() } } },
+    scales: {
+      x: { ticks: { color: doux, font: { family: POLICE() } }, grid: { display: false }, border: { color: trait } },
+      y: { ticks: { color: doux, font: { family: POLICE() } }, grid: { color: trait }, border: { display: false }, beginAtZero: true }
+    }
+  }, extra);
+}
+function graphe(id, config) {
+  if (graphes[id]) graphes[id].destroy();
+  graphes[id] = new Chart($(id), config);
+}
+const SERIES = ["--serie-1", "--serie-2", "--serie-3", "--serie-4"];
+
+function courbesProgression(liste, groupes) {
+  const tous = liste.flatMap(s => s.datesReussite);
+  const premiere = BRUT.essais.length ? jourCle(BRUT.essais[0][0]) : jourCle(Date.now());
+  const fin = jourCle(Date.now());
+  const jours = [];
+  for (let d = premiere; d <= fin; d += JOUR) jours.push(d);
+  const series = groupes.map(([nom, membres]) => {
+    const dates = membres.flatMap(s => s.datesReussite).map(jourCle).sort((a, b) => a - b);
+    let i = 0, cumul = 0;
+    const valeurs = jours.map(d => { while (i < dates.length && dates[i] <= d) { cumul++; i++; } return membres.length ? +(cumul / membres.length).toFixed(2) : 0; });
+    return { nom, valeurs };
+  });
+  return { jours, series, vide: !tous.length };
+}
+
+/* ---------------- Rendu ---------------- */
+function dessinerFiltres() {
+  const classes = [...new Set(BRUT.eleves.map(e => e.classe))].filter(Boolean).sort();
+  const f = $("filtres");
+  f.innerHTML = "";
+  [["toutes", "Toutes les classes"], ...classes.map(c => [c, c])].forEach(([v, lib]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "puce"; b.textContent = lib;
+    b.setAttribute("aria-pressed", String(CLASSE === v));
+    b.addEventListener("click", () => { CLASSE = v; dessinerFiltres(); toutDessiner(); });
+    f.appendChild(b);
+  });
+  if (classes.length < 2) f.hidden = classes.length === 0;
+}
+
+function toutDessiner() {
+  const liste = calculer();
+  dessinerEnsemble(liste);
+  dessinerEleves(liste);
+  dessinerExercices(liste);
+  remplirChoixEleve(liste);
+  if (ELEVE_FICHE) dessinerFiche(liste);
+  dessinerEvaluation(liste);
+}
+
+function chiffre(val, lib, unite) {
+  return `<div class="chiffre"><span class="val">${val}${unite ? ` <small>${unite}</small>` : ""}</span><span class="lib">${lib}</span></div>`;
+}
+
+function dessinerEnsemble(liste) {
+  const actifs = liste.filter(s => s.essais > 0);
+  const semaine = BRUT.essais.filter(e => Date.now() - e[0] < 7 * JOUR && liste.some(s => s.id === e[1])).length;
+  const tentes = liste.reduce((a, s) => a + s.tentes, 0), premiers = liste.reduce((a, s) => a + s.premiersOk, 0);
+  const moyReussis = liste.length ? liste.reduce((a, s) => a + s.reussis, 0) / liste.length : 0;
+  $("chiffres").innerHTML =
+    chiffre(`${actifs.length}`, "élèves ayant commencé", `/ ${liste.length}`) +
+    chiffre(moyReussis.toFixed(1).replace(".", ","), "exercices réussis en moyenne", `/ ${NB}`) +
+    chiffre(pct(tentes ? premiers / tentes : null), "exercices réussis du premier coup") +
+    chiffre(duree(actifs.length ? actifs.reduce((a, s) => a + s.temps, 0) / actifs.length : 0), "de travail par élève actif") +
+    chiffre(`${semaine}`, "essais ces 7 derniers jours");
+
+  // Progression : une courbe par classe (ou la classe filtrée)
+  const groupes = CLASSE === "toutes"
+    ? [...new Set(liste.map(s => s.classe))].sort().map(c => [c, liste.filter(s => s.classe === c)])
+    : [[CLASSE, liste]];
+  const p = courbesProgression(liste, groupes);
+  graphe("g-progression", {
+    type: "line",
+    data: { labels: p.jours.map(dateCourte), datasets: p.series.map((s, i) => ({
+      label: s.nom, data: s.valeurs, borderColor: couleur(SERIES[i % 4]), backgroundColor: couleur(SERIES[i % 4]) + "22",
+      fill: groupes.length === 1, tension: .25, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2.5 })) },
+    options: baseOptions({ interaction: { mode: "index", intersect: false },
+      plugins: { ...baseOptions().plugins, tooltip: { callbacks: { label: c => `${c.dataset.label} : ${String(c.parsed.y).replace(".", ",")} exercices` } } },
+      scales: { ...baseOptions().scales, y: { ...baseOptions().scales.y, suggestedMax: Math.min(NB, Math.ceil(Math.max(4, ...p.series.flatMap(s => s.valeurs)) + 2)) },
+                x: { ...baseOptions().scales.x, ticks: { ...baseOptions().scales.x.ticks, maxTicksLimit: 8 } } } })
+  });
+
+  // Alertes
+  const med = mediane(liste.map(s => s.reussis));
+  const alertes = liste.map(s => ({ s, r: alertesPour(s, med) })).filter(a => a.r.length)
+    .sort((a, b) => b.r.filter(x => x.grave).length - a.r.filter(x => x.grave).length || a.s.reussis - b.s.reussis);
+  const zone = $("alertes");
+  zone.innerHTML = "";
+  if (!alertes.length) zone.innerHTML = '<p class="vide">Aucun élève à signaler pour le moment.</p>';
+  alertes.slice(0, 8).forEach(({ s, r }) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "alerte";
+    b.innerHTML = `<span class="qui"></span><span class="num"></span><span class="raisons"></span>`;
+    b.querySelector(".qui").textContent = nomComplet(s);
+    const sm = document.createElement("small"); sm.textContent = " · " + s.classe; b.querySelector(".qui").appendChild(sm);
+    b.querySelector(".num").textContent = `${s.reussis}/${NB}`;
+    r.forEach(x => { const sp = document.createElement("span"); sp.className = "raison" + (x.grave ? " grave" : ""); sp.textContent = x.t; b.querySelector(".raisons").appendChild(sp); });
+    b.addEventListener("click", () => ouvrirFiche(s.id));
+    zone.appendChild(b);
+  });
+  if (alertes.length > 8) { const p2 = document.createElement("p"); p2.className = "vide"; p2.textContent = `et ${alertes.length - 8} autres : voir l'onglet Élèves.`; zone.appendChild(p2); }
+
+  // Répartition par niveau
+  const niveaux = PARCOURS.map((m, i) => i).concat(PARCOURS.length);
+  graphe("g-repartition", {
+    type: "bar",
+    data: { labels: niveaux.map(n => n === 0 ? "Aucune" : `${n}. ${PARCOURS[n - 1].titre}`),
+            datasets: [{ label: "Élèves", data: niveaux.map(n => liste.filter(s => s.niveau === n).length), backgroundColor: couleur("--accent"), borderRadius: 4, maxBarThickness: 42 }] },
+    options: baseOptions({ plugins: { legend: { display: false } },
+      scales: { ...baseOptions().scales, y: { ...baseOptions().scales.y, ticks: { ...baseOptions().scales.y.ticks, precision: 0 } } } })
+  });
+
+  // Réussite par notion
+  graphe("g-notions", {
+    type: "bar",
+    data: { labels: PARCOURS.map((m, i) => `${i + 1}. ${m.titre}`),
+            datasets: [{ label: "Exercices réussis", data: PARCOURS.map((m, i) => liste.length ? Math.round(100 * liste.reduce((a, s) => a + s.parNotion[i], 0) / (liste.length * m.exercices.length)) : 0),
+                         backgroundColor: couleur("--accent"), borderRadius: 4, maxBarThickness: 42 }] },
+    options: baseOptions({ plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.parsed.y} % des exercices réussis` } } },
+      scales: { ...baseOptions().scales, y: { ...baseOptions().scales.y, max: 100, ticks: { ...baseOptions().scales.y.ticks, callback: v => v + " %" } } } })
+  });
+
+  // Erreurs
+  const erreurs = {};
+  liste.forEach(s => Object.entries(s.erreurs).forEach(([t, n]) => { const k = nomErreur(t); erreurs[k] = (erreurs[k] || 0) + n; }));
+  const top = Object.entries(erreurs).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  graphe("g-erreurs", {
+    type: "bar",
+    data: { labels: top.map(x => x[0]), datasets: [{ label: "Essais ratés", data: top.map(x => x[1]), backgroundColor: couleur("--serie-2"), borderRadius: 4, maxBarThickness: 26 }] },
+    options: baseOptions({ indexAxis: "y", plugins: { legend: { display: false } },
+      scales: { x: { ...baseOptions().scales.y, ticks: { ...baseOptions().scales.y.ticks, precision: 0 } }, y: { ...baseOptions().scales.x } } })
+  });
+}
+
+/* Tableau triable */
+function tableTriable(table, colonnes, lignes, triInitial, surClic) {
+  let tri = triInitial;
+  function rendu() {
+    const col = colonnes.find(c => c.cle === tri.cle);
+    const tries = [...lignes].sort((a, b) => {
+      const va = col.valeur(a), vb = col.valeur(b);
+      const r = va === null ? 1 : vb === null ? -1 : (typeof va === "string" ? va.localeCompare(vb, "fr") : va - vb);
+      return tri.sens === "asc" ? r : -r;
+    });
+    table.innerHTML = "";
+    const thead = table.createTHead().insertRow();
+    colonnes.forEach(c => {
+      const th = document.createElement("th");
+      th.textContent = c.titre;
+      if (c.title) th.title = c.title;
+      if (c.valeur) {
+        th.dataset.tri = c.cle;
+        if (tri.cle === c.cle) th.className = "tri-" + tri.sens;
+        th.addEventListener("click", () => { tri = { cle: c.cle, sens: tri.cle === c.cle && tri.sens === "desc" ? "asc" : (c.sensDefaut || "desc") }; rendu(); });
+      } else th.style.cursor = "default";
+      thead.appendChild(th);
+    });
+    const tb = table.createTBody();
+    tries.forEach(l => {
+      const tr = tb.insertRow();
+      colonnes.forEach(c => { const td = tr.insertCell(); if (c.classe) td.className = c.classe; c.rendu(td, l); });
+      if (surClic) tr.addEventListener("click", () => surClic(l));
+    });
+  }
+  rendu();
+}
+
+function dessinerEleves(liste) {
+  const cols = [
+    { cle: "nom", titre: "Élève", classe: "nom", sensDefaut: "asc", valeur: s => (s.nom + " " + s.prenom).toLowerCase(),
+      rendu: (td, s) => { td.textContent = nomComplet(s); const sm = document.createElement("small"); sm.textContent = s.id + (CLASSE === "toutes" ? " · " + s.classe : ""); td.appendChild(sm); } },
+    ...PARCOURS.map((m, i) => ({ cle: "n" + i, titre: String(i + 1), title: m.titre, classe: "case-notion", valeur: s => s.parNotion[i],
+      rendu: (td, s) => { const v = s.parNotion[i]; const t = s.exos && m.exercices.some(e => s.exos[e.id]); td.innerHTML = `<span class="cellule c${v}">${t || v ? v : "·"}</span>`; } })),
+    { cle: "reussis", titre: "Réussis", valeur: s => s.reussis, rendu: (td, s) => { td.innerHTML = `<span class="barre-mini"><i style="width:${100 * s.reussis / NB}%"></i></span>${s.reussis}`; } },
+    { cle: "essais", titre: "Essais", valeur: s => s.essais, rendu: (td, s) => td.textContent = s.essais },
+    { cle: "premier", titre: "Du 1er coup", title: "Part des exercices tentés réussis au premier essai", valeur: s => s.tauxPremier, rendu: (td, s) => td.textContent = pct(s.tauxPremier) },
+    { cle: "temps", titre: "Temps", valeur: s => s.temps, rendu: (td, s) => td.textContent = duree(s.temps) },
+    { cle: "derniere", titre: "Dernière activité", valeur: s => s.derniere || 0, rendu: (td, s) => td.textContent = depuis(s.derniere) }
+  ];
+  tableTriable($("t-eleves"), cols, liste, { cle: "nom", sens: "asc" }, s => ouvrirFiche(s.id));
+}
+
+function statsExercices(liste) {
+  return EXOS.map(e => {
+    const tent = liste.filter(s => s.exos[e.id]);
+    const reus = tent.filter(s => s.exos[e.id].reussi);
+    const erreurs = {};
+    tent.forEach(s => Object.entries(s.exos[e.id].erreurs).forEach(([t, n]) => { const k = nomErreur(t); erreurs[k] = (erreurs[k] || 0) + n; }));
+    const topErr = Object.entries(erreurs).sort((a, b) => b[1] - a[1])[0];
+    return {
+      ...e, tentes: tent.length, reussis: reus.length,
+      taux: tent.length ? reus.length / tent.length : null,
+      premier: tent.length ? tent.filter(s => s.exos[e.id].premierOk).length / tent.length : null,
+      essaisMoy: reus.length ? reus.reduce((a, s) => a + s.exos[e.id].essaisAvant, 0) / reus.length : null,
+      tempsMed: reus.length ? mediane(reus.map(s => s.exos[e.id].temps)) : null,
+      topErr: topErr ? topErr[0] : "", bloques: tent.filter(s => !s.exos[e.id].reussi && s.exos[e.id].echecsDepuis >= 5).length
+    };
+  });
+}
+
+function dessinerExercices(liste) {
+  const st = statsExercices(liste);
+  graphe("g-exercices", {
+    data: { labels: st.map(e => e.num), datasets: [
+      { type: "bar", label: "Réussite (%)", data: st.map(e => e.taux === null ? null : Math.round(100 * e.taux)), yAxisID: "y",
+        backgroundColor: st.map(e => couleur(e.im % 2 ? "--chaud-3" : "--accent")), borderRadius: 3, maxBarThickness: 22 },
+      { type: "line", label: "Essais avant réussite", data: st.map(e => e.essaisMoy === null ? null : +e.essaisMoy.toFixed(1)), yAxisID: "y2",
+        borderColor: couleur("--serie-2"), backgroundColor: couleur("--serie-2"), showLine: false, pointRadius: 4, pointHoverRadius: 6 }
+    ] },
+    options: baseOptions({
+      interaction: { mode: "index", intersect: false },
+      plugins: { ...baseOptions().plugins, tooltip: { callbacks: {
+        title: items => { const e = st[items[0].dataIndex]; return `${e.num} ${e.titre}`; },
+        label: c => c.datasetIndex === 0 ? `Réussite : ${c.parsed.y} % (${st[c.dataIndex].reussis}/${st[c.dataIndex].tentes} élèves)` : `Essais avant réussite : ${String(c.parsed.y).replace(".", ",")}` } } },
+      scales: {
+        x: baseOptions().scales.x,
+        y: { ...baseOptions().scales.y, max: 100, position: "left", ticks: { ...baseOptions().scales.y.ticks, callback: v => v + " %" } },
+        y2: { ...baseOptions().scales.y, position: "right", grid: { display: false }, title: { display: true, text: "essais", color: couleur("--doux") } }
+      }
+    })
+  });
+  const cols = [
+    { cle: "num", titre: "Exercice", classe: "nom", sensDefaut: "asc", valeur: e => IDX_EXO[e.id], rendu: (td, e) => { td.textContent = `${e.num} ${e.titre}`; } },
+    { cle: "reussis", titre: "Ont réussi", valeur: e => e.reussis, rendu: (td, e) => td.textContent = `${e.reussis} / ${e.tentes}` },
+    { cle: "taux", titre: "Réussite", valeur: e => e.taux, rendu: (td, e) => td.textContent = pct(e.taux) },
+    { cle: "premier", titre: "Du 1er coup", valeur: e => e.premier, rendu: (td, e) => td.textContent = pct(e.premier) },
+    { cle: "essais", titre: "Essais moyens", title: "Nombre moyen d'essais avant de réussir", valeur: e => e.essaisMoy, rendu: (td, e) => td.textContent = e.essaisMoy === null ? "—" : e.essaisMoy.toFixed(1).replace(".", ",") },
+    { cle: "temps", titre: "Temps médian", valeur: e => e.tempsMed, rendu: (td, e) => td.textContent = e.tempsMed === null ? "—" : duree(e.tempsMed) },
+    { cle: "bloques", titre: "Bloqués", title: "Élèves avec 5 échecs ou plus sans réussite", valeur: e => e.bloques, rendu: (td, e) => td.textContent = e.bloques || "" },
+    { cle: "err", titre: "Erreur principale", valeur: e => e.topErr, rendu: (td, e) => td.textContent = e.topErr }
+  ];
+  tableTriable($("t-exercices"), cols, st, { cle: "num", sens: "asc" });
+}
+
+/* ---------------- Fiche élève ---------------- */
+function remplirChoixEleve(liste) {
+  const sel = $("choix-eleve");
+  sel.innerHTML = '<option value="">Choisir un élève…</option>';
+  [...liste].sort((a, b) => a.classe.localeCompare(b.classe) || (a.nom + a.prenom).localeCompare(b.nom + b.prenom, "fr")).forEach(s => {
+    const o = document.createElement("option");
+    o.value = s.id; o.textContent = `${nomComplet(s)} (${s.classe})`;
+    if (s.id === ELEVE_FICHE) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+$("choix-eleve").addEventListener("change", e => { if (e.target.value) ouvrirFiche(e.target.value); });
+
+function ouvrirFiche(id) {
+  ELEVE_FICHE = id;
+  montrerVue("fiche");
+  const liste = calculer();
+  if (!liste.find(s => s.id === id)) { CLASSE = "toutes"; dessinerFiltres(); toutDessiner(); return; }
+  remplirChoixEleve(liste);
+  dessinerFiche(liste);
+  window.scrollTo({ top: 0 });
+}
+
+function dessinerFiche(liste) {
+  const s = liste.find(x => x.id === ELEVE_FICHE);
+  if (!s) return;
+  $("f-nom").textContent = nomComplet(s);
+  $("f-info").textContent = `${s.classe} · identifiant ${s.id} · ${s.premiere ? "commencé le " + dateCourte(s.premiere) : "pas encore commencé"}`;
+  const classe = liste.filter(x => x.classe === s.classe);
+  const rang = [...classe].sort((a, b) => b.reussis - a.reussis).findIndex(x => x.id === s.id) + 1;
+  $("f-chiffres").innerHTML =
+    chiffre(`${s.reussis}`, "exercices réussis", `/ ${NB}`) +
+    chiffre(`${rang}<small>e</small>`, `sur ${classe.length} dans sa classe`) +
+    chiffre(pct(s.tauxPremier), "réussis du premier coup") +
+    chiffre(`${s.essais}`, "essais au total") +
+    chiffre(duree(s.temps), "de travail") +
+    chiffre(depuis(s.derniere), "dernière activité");
+
+  const p = courbesProgression(classe, [[nomComplet(s), [s]], [`Moyenne ${s.classe}`, classe]]);
+  graphe("g-eleve", {
+    type: "line",
+    data: { labels: p.jours.map(dateCourte), datasets: [
+      { label: p.series[0].nom, data: p.series[0].valeurs, borderColor: couleur("--accent"), backgroundColor: couleur("--accent") + "22", fill: true, stepped: true, pointRadius: 0, borderWidth: 2.5 },
+      { label: p.series[1].nom, data: p.series[1].valeurs, borderColor: couleur("--doux"), borderDash: [5, 4], pointRadius: 0, borderWidth: 1.5, tension: .25 }
+    ] },
+    options: baseOptions({ interaction: { mode: "index", intersect: false },
+      scales: { ...baseOptions().scales, x: { ...baseOptions().scales.x, ticks: { ...baseOptions().scales.x.ticks, maxTicksLimit: 7 } } } })
+  });
+
+  const err = {};
+  Object.entries(s.erreurs).forEach(([t, n]) => { const k = nomErreur(t); err[k] = (err[k] || 0) + n; });
+  const top = Object.entries(err).sort((a, b) => b[1] - a[1]);
+  graphe("g-eleve-erreurs", {
+    type: "bar",
+    data: { labels: top.length ? top.map(x => x[0]) : ["Aucune erreur"], datasets: [{ label: "Essais ratés", data: top.length ? top.map(x => x[1]) : [0], backgroundColor: couleur("--serie-2"), borderRadius: 4, maxBarThickness: 24 }] },
+    options: baseOptions({ indexAxis: "y", plugins: { legend: { display: false } },
+      scales: { x: { ...baseOptions().scales.y, ticks: { ...baseOptions().scales.y.ticks, precision: 0 } }, y: { ...baseOptions().scales.x } } })
+  });
+
+  const lignes = EXOS.map(e => ({ ...e, x: s.exos[e.id] }));
+  const cols = [
+    { cle: "num", titre: "Exercice", classe: "nom", sensDefaut: "asc", valeur: e => IDX_EXO[e.id], rendu: (td, e) => td.textContent = `${e.num} ${e.titre}` },
+    { cle: "etat", titre: "État", valeur: e => e.x ? (e.x.reussi ? 2 : 1) : 0, rendu: (td, e) => { td.innerHTML = e.x ? (e.x.reussi ? '<span class="etat ok">Réussi</span>' : '<span class="etat encours">En cours</span>') : '<span class="etat non">Pas commencé</span>'; } },
+    { cle: "essais", titre: "Essais", valeur: e => e.x ? e.x.essais : null, rendu: (td, e) => td.textContent = e.x ? (e.x.reussi ? `${e.x.essaisAvant} pour réussir` : e.x.essais) : "" },
+    { cle: "temps", titre: "Temps", valeur: e => e.x ? e.x.temps : null, rendu: (td, e) => td.textContent = e.x ? duree(e.x.temps) : "" },
+    { cle: "err", titre: "Erreurs", valeur: null, rendu: (td, e) => td.textContent = e.x ? Object.entries(e.x.erreurs).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${nomErreur(t)} ×${n}`).join(", ") : "" },
+    { cle: "date", titre: "Dernier essai", valeur: e => e.x ? e.x.dernier : null, rendu: (td, e) => td.textContent = e.x ? dateHeure(e.x.dernier) : "" }
+  ];
+  tableTriable($("t-fiche"), cols, lignes, { cle: "num", sens: "asc" });
+  $("f-codes").innerHTML = '<button class="bouton" id="b-codes" type="button">Afficher le code de ses essais</button>';
+  $("b-codes").addEventListener("click", chargerCodes);
+}
+
+async function chargerCodes() {
+  const zone = $("f-codes");
+  zone.innerHTML = '<span class="chargement">Chargement du code…</span>';
+  try {
+    let essais;
+    if (DEMO) essais = codesDemo(ELEVE_FICHE);
+    else {
+      const r = await fetch(URL_SERVEUR + "?" + new URLSearchParams({ action: "codes", cle: CLE, id: ELEVE_FICHE }));
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.erreur);
+      essais = d.essais;
+    }
+    zone.innerHTML = "";
+    const conteneur = document.createElement("div");
+    conteneur.className = "essais-code";
+    if (!essais.length) conteneur.innerHTML = '<p class="vide">Aucun essai pour le moment.</p>';
+    essais.sort((a, b) => b.t - a.t).slice(0, 150).forEach(e => {
+      const d = document.createElement("article");
+      d.className = "essai-code" + (Number(e.reussi) ? " reussi" : "");
+      const ex = EXOS[IDX_EXO[e.exo]];
+      d.innerHTML = "<header><strong></strong><span></span></header><pre></pre>";
+      d.querySelector("strong").textContent = ex ? `${ex.num} ${ex.titre}` : e.exo;
+      d.querySelector("span").textContent = `${dateHeure(e.t)} · ${Number(e.reussi) ? "réussi" : nomErreur(e.erreur)}`;
+      d.querySelector("pre").textContent = e.code || "(vide)";
+      conteneur.appendChild(d);
+    });
+    zone.appendChild(conteneur);
+  } catch {
+    zone.innerHTML = '<p class="vide">Impossible de charger le code. Réessayez avec « Actualiser ».</p>';
+  }
+}
+
+/* ---------------- Évaluation ---------------- */
+const NOMS_INCIDENTS = { onglet: "Changement d'onglet ou de fenêtre", fenetre: "Sortie de la fenêtre", plein_ecran: "Sortie du plein écran", reprise: "Page rechargée ou rouverte" };
+const LISTE_EVALS = window.EVALUATIONS || [];
+let EVAL_CHOISIE = null;
+let EVAL_ELEVE = null;
+
+function evaluationsDemo(eleves, alea) {
+  const lignes = [];
+  const t0 = Date.now() - 50 * 60000;
+  eleves.forEach((e, i) => {
+    if (alea() < 0.06) return;
+    const debut = t0 + alea() * 4 * 60000;
+    lignes.push([debut, e.id, "eval1", "debut", ""]);
+    if (alea() < 0.12) {
+      const ti = debut + alea() * 20 * 60000;
+      lignes.push([ti, e.id, "eval1", "incident", JSON.stringify({ type: ["onglet", "plein_ecran", "fenetre"][Math.floor(alea() * 3)], question: 1 + Math.floor(alea() * 6) })]);
+      if (alea() < 0.8) lignes.push([ti + 90000, e.id, "eval1", "deblocage", ""]);
+    }
+    if (alea() < 0.85) {
+      const niveau = alea();
+      const details = [2, 3, 3, 4, 4, 4].map((m, k) => {
+        const p = Math.max(0, Math.min(m, Math.round(m * (niveau + 0.35 - k * 0.07 + (alea() - .5) * .4) * 2) / 2));
+        return { q: k + 1, v: "ABC"[Math.floor(alea() * 3)], points: p, max: m, tests: k > 2 ? (p === m ? "1/1" : "0/1") : undefined, juste: k <= 2 ? p === m : undefined };
+      });
+      const total = details.reduce((a, d) => a + d.points, 0);
+      lignes.push([debut + (18 + alea() * 12) * 60000, e.id, "eval1", "rendu", JSON.stringify({ total, max: 20, details, reponses: { 0: "(réponse d'exemple)", 3: "# code d'exemple (données fictives)" }, auto: alea() < 0.2 })]);
+    }
+  });
+  return { ouvertes: { "2nde A": "eval1" }, lignes: lignes.sort((a, b) => a[0] - b[0]) };
+}
+
+const noteSur20 = r => r ? (typeof r.note20 === "number" ? r.note20 : (r.max ? Math.round(r.total / r.max * 40) / 2 : 0)) : null;
+const detailQ = (r, k) => r && r.details ? (r.details.find(d => d.q === k + 1) || (r.details.every(d => d.q === undefined) ? r.details[k] : null)) : null;
+
+function etatsEvaluation(liste, evId) {
+  const ev = (BRUT.evaluations && BRUT.evaluations.lignes) || [];
+  const parId = Object.fromEntries(liste.map(s => [s.id, { s, debut: null, rendu: null, incidents: [], deblocages: [] }]));
+  ev.forEach(([t, id, e, type, contenu]) => {
+    const x = parId[id];
+    if (!x || e !== evId) return;
+    let c = null;
+    try { c = contenu ? JSON.parse(contenu) : null; } catch {}
+    if (type === "debut" && !x.debut) x.debut = t;
+    else if (type === "rendu") x.rendu = { t, ...(c || {}) };
+    else if (type === "incident") x.incidents.push({ t, ...(c || {}) });
+    else if (type === "deblocage") x.deblocages.push(t);
+  });
+  return Object.values(parId).map(x => {
+    const dernierI = Math.max(0, ...x.incidents.map(i => i.t)), dernierD = Math.max(0, ...x.deblocages);
+    x.bloque = !x.rendu && dernierI > dernierD;
+    x.statut = x.rendu ? "rendu" : x.bloque ? "bloque" : x.debut ? "encours" : "non";
+    return x;
+  });
+}
+
+function dessinerEvaluation(liste) {
+  const sel = $("choix-eval");
+  const ouvertes = (BRUT.evaluations && BRUT.evaluations.ouvertes) || {};
+  const ouverte = Object.values(ouvertes)[0] || null;
+  if (!EVAL_CHOISIE) {
+    const avecDonnees = ((BRUT.evaluations && BRUT.evaluations.lignes) || []).map(l => l[2]);
+    EVAL_CHOISIE = ouverte || avecDonnees[avecDonnees.length - 1] || (LISTE_EVALS[0] && LISTE_EVALS[0].id) || null;
+  }
+  sel.innerHTML = "";
+  LISTE_EVALS.forEach(e => { const o = document.createElement("option"); o.value = e.id; o.textContent = e.titre; o.selected = e.id === EVAL_CHOISIE; sel.appendChild(o); });
+  const meta = LISTE_EVALS.find(e => e.id === EVAL_CHOISIE);
+  if (!meta) { $("ev-titre").textContent = "Aucune évaluation"; return; }
+  $("ev-titre").textContent = meta.titre;
+  const pastille = document.createElement("span");
+  const classesOuvertes = Object.keys(ouvertes).filter(c => ouvertes[c] === meta.id).sort();
+  pastille.className = "ev-ouverte" + (classesOuvertes.length ? "" : " ev-fermee");
+  pastille.textContent = classesOuvertes.length ? "Ouverte pour " + classesOuvertes.join(", ") : "Fermée";
+  $("ev-titre").appendChild(pastille);
+  $("ev-info").textContent = `${meta.duree} min · ${meta.nb} questions · sur ${meta.total} points. Ouvrir ou fermer : menu « Techno 4e » de la Google Sheet.`;
+
+  const etats = etatsEvaluation(liste, meta.id);
+  const rendues = etats.filter(x => x.rendu);
+  const notes = rendues.map(x => noteSur20(x.rendu));
+  const moy = notes.length ? notes.reduce((a, b) => a + b, 0) / notes.length : null;
+  $("ev-chiffres").innerHTML =
+    chiffre(`${etats.filter(x => x.debut).length}`, "ont commencé", `/ ${etats.length}`) +
+    chiffre(`${rendues.length}`, "copies rendues") +
+    chiffre(`${etats.filter(x => x.bloque).length}`, "bloqués en ce moment") +
+    chiffre(`${etats.reduce((a, x) => a + x.incidents.length, 0)}`, "incidents au total") +
+    chiffre(moy === null ? "—" : moy.toFixed(1).replace(".", ","), "moyenne", "/ 20") +
+    chiffre(notes.length ? String(mediane(notes)).replace(".", ",") : "—", "médiane", "/ 20");
+
+  const ordreStatut = { bloque: 0, encours: 1, non: 2, rendu: 3 };
+  const libStatut = { bloque: ["bloque", "Bloqué"], encours: ["encours", "En cours"], non: ["non", "Pas commencé"], rendu: ["ok", "Rendue"] };
+  const cols = [
+    { cle: "nom", titre: "Élève", classe: "nom", sensDefaut: "asc", valeur: x => (x.s.nom + " " + x.s.prenom).toLowerCase(),
+      rendu: (td, x) => { td.textContent = nomComplet(x.s); const sm = document.createElement("small"); sm.textContent = x.s.classe; td.appendChild(sm); } },
+    { cle: "statut", titre: "Statut", sensDefaut: "asc", valeur: x => ordreStatut[x.statut],
+      rendu: (td, x) => { const [c, l] = libStatut[x.statut]; td.innerHTML = `<span class="etat ${c}"></span>`; td.firstChild.textContent = l + (x.rendu && x.rendu.auto ? " (temps écoulé)" : ""); } },
+    { cle: "incidents", titre: "Incidents", valeur: x => x.incidents.length,
+      rendu: (td, x) => { td.textContent = x.incidents.length || ""; td.title = x.incidents.map(i => `${dateHeure(i.t)} : ${NOMS_INCIDENTS[i.type] || i.type}`).join("\n"); if (x.incidents.length) td.style.color = "var(--ko)"; td.style.fontWeight = "700"; } },
+    { cle: "note", titre: "Note / 20", valeur: x => noteSur20(x.rendu),
+      rendu: (td, x) => { td.textContent = x.rendu ? String(noteSur20(x.rendu)).replace(".", ",") : ""; td.style.fontWeight = "700"; } },
+    ...Array.from({ length: meta.nb }, (_, k) => ({ cle: "q" + k, titre: "Q" + (k + 1), valeur: x => { const d = detailQ(x.rendu, k); return d ? d.points : null; },
+      rendu: (td, x) => { const d = detailQ(x.rendu, k); td.textContent = d ? String(d.points).replace(".", ",") + (d.v ? " " + d.v : "") : ""; if (d) { td.style.color = d.points === d.max ? "var(--ok)" : d.points === 0 ? "var(--ko)" : ""; td.title = d.v ? `version ${d.v}` : ""; } } })),
+    { cle: "duree", titre: "Durée", valeur: x => x.debut ? ((x.rendu ? x.rendu.t : Date.now()) - x.debut) : null,
+      rendu: (td, x) => { td.textContent = x.debut ? `${Math.round(((x.rendu ? x.rendu.t : Date.now()) - x.debut) / 60000)} min` : ""; } }
+  ];
+  tableTriable($("t-eval"), cols, etats, { cle: "statut", sens: "asc" }, x => { EVAL_ELEVE = x.s.id; dessinerDetailEval(etats, meta); $("ev-detail").scrollIntoView({ block: "start" }); });
+  dessinerDetailEval(etats, meta);
+}
+
+function dessinerDetailEval(etats, meta) {
+  const x = etats.find(e => e.s.id === EVAL_ELEVE);
+  $("ev-detail").hidden = !x;
+  if (!x) return;
+  $("evd-nom").textContent = nomComplet(x.s);
+  $("evd-info").textContent = `${x.s.classe} · ` + (x.debut ? `commencé à ${dateHeure(x.debut)}` : "pas commencé") +
+    (x.rendu ? ` · rendu à ${dateHeure(x.rendu.t)}${x.rendu.auto ? " (fin du temps)" : ""} · note ${String(noteSur20(x.rendu)).replace(".", ",")} / 20` : "");
+  const zi = $("evd-incidents");
+  zi.innerHTML = "";
+  if (x.incidents.length) {
+    const h = document.createElement("h3"); h.textContent = "Incidents"; h.style.cssText = "font-size:1rem;margin:.6rem 0 .3rem;color:var(--ko)";
+    const ul = document.createElement("ul"); ul.className = "incidents-liste";
+    [...x.incidents.map(i => ({ t: i.t, texte: `${NOMS_INCIDENTS[i.type] || i.type}${i.question ? ` (sur la question ${i.question})` : ""}` })),
+     ...x.deblocages.map(t => ({ t, texte: "débloqué par le professeur", doux: true }))]
+      .sort((u, v) => u.t - v.t)
+      .forEach(e => { const li = document.createElement("li"); li.textContent = `${dateHeure(e.t)} : ${e.texte}`; if (e.doux) li.style.color = "var(--doux)"; ul.appendChild(li); });
+    zi.append(h, ul);
+  }
+  const zr = $("evd-reponses");
+  zr.innerHTML = "";
+  if (!x.rendu) { const p = document.createElement("p"); p.className = "vide"; p.textContent = "Les réponses apparaîtront ici quand la copie sera rendue."; zr.appendChild(p); return; }
+  (x.rendu.details || []).map((d, i) => ({ d, i, q: d.q || i + 1 })).sort((a, b) => a.q - b.q).forEach(({ d, i: k, q }) => {
+    const art = document.createElement("article");
+    art.className = "rep-question" + (d.points === d.max ? " plein" : d.points === 0 ? " zero" : "");
+    art.innerHTML = "<header><strong></strong><span></span><span class=\"pts\"></span></header><pre></pre>";
+    art.querySelector("strong").textContent = `Question ${q}` + (d.v ? ` (version ${d.v})` : "");
+    const infos = [];
+    if (d.tests) infos.push(`tests réussis : ${d.tests}`);
+    if (d.juste !== undefined) infos.push(d.juste ? "réponse juste" : "réponse fausse");
+    if (d.regles && d.regles.length) infos.push("consigne non respectée : " + d.regles.join(" "));
+    if (d.erreur) infos.push("erreur : " + (typeof nomErreur === "function" ? nomErreur(d.erreur) : d.erreur));
+    art.querySelector("header span").textContent = infos.join(" · ");
+    art.querySelector(".pts").textContent = `${String(d.points).replace(".", ",")} / ${d.max}`;
+    const rep = x.rendu.reponses ? x.rendu.reponses[k] : undefined;
+    art.querySelector("pre").textContent = rep !== undefined && String(rep).trim() ? rep : "(pas de réponse)";
+    zr.appendChild(art);
+  });
+}
+
+$("choix-eval").addEventListener("change", e => { EVAL_CHOISIE = e.target.value; EVAL_ELEVE = null; dessinerEvaluation(calculer()); });
+$("b-csv-eval").addEventListener("click", () => {
+  if (!BRUT) return;
+  const meta = LISTE_EVALS.find(e => e.id === EVAL_CHOISIE);
+  if (!meta) return;
+  const etats = etatsEvaluation(calculer(), meta.id);
+  const entete = ["identifiant", "classe", "prenom", "nom", "statut", "note_sur_20", "incidents", ...Array.from({ length: meta.nb }, (_, k) => "q" + (k + 1))];
+  const lib = { rendu: "rendue", bloque: "bloque", encours: "en cours", non: "pas commence" };
+  const echap = v => { const s = String(v ?? ""); return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const lignes = etats.map(x => [x.s.id, x.s.classe, x.s.prenom, x.s.nom, lib[x.statut], x.rendu ? String(noteSur20(x.rendu)).replace(".", ",") : "", x.incidents.length,
+    ...Array.from({ length: meta.nb }, (_, k) => { const d = detailQ(x.rendu, k); return d ? String(d.points).replace(".", ",") : ""; })]);
+  const csv = "﻿" + [entete, ...lignes].map(l => l.map(echap).join(";")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `notes-${meta.id}-${CLASSE === "toutes" ? "toutes-classes" : CLASSE.replace(/\s+/g, "-")}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+});
+
+/* ---------------- Onglets ---------------- */
+function montrerVue(v) {
+  document.querySelectorAll(".onglet").forEach(o => { o.setAttribute("aria-selected", String(o.dataset.vue === v)); if (o.dataset.vue === v) o.scrollIntoView({ block: "nearest", inline: "nearest" }); });
+  ["ensemble", "eleves", "exercices", "fiche", "evaluation"].forEach(x => $("vue-" + x).hidden = x !== v);
+  Object.values(graphes).forEach(g => g.resize());
+}
+document.querySelectorAll(".onglet").forEach(o => o.addEventListener("click", () => montrerVue(o.dataset.vue)));
+
+/* ---------------- Export CSV ---------------- */
+$("b-csv").addEventListener("click", () => {
+  if (!BRUT) return;
+  const liste = calculer();
+  const entete = ["identifiant", "classe", "prenom", "nom", "exercices_reussis", "sur", "essais", "reussis_premier_coup_pct", "temps_min", "derniere_activite",
+    ...PARCOURS.map((m, i) => `notion${i + 1}_${m.titre.toLowerCase().replace(/[^a-zà-ü]+/g, "_")}`)];
+  const echap = v => { const s = String(v ?? ""); return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const lignes = liste.map(s => [s.id, s.classe, s.prenom, s.nom, s.reussis, NB, s.essais, s.tauxPremier === null ? "" : Math.round(100 * s.tauxPremier),
+    Math.round(s.temps / 60), s.derniere ? new Date(s.derniere).toLocaleDateString("fr-FR") : "", ...s.parNotion]);
+  const csv = "﻿" + [entete, ...lignes].map(l => l.map(echap).join(";")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `suivi-python-${CLASSE === "toutes" ? "toutes-classes" : CLASSE.replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+});
+
+/* ---------------- Démarrage ---------------- */
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (BRUT) toutDessiner(); });
+document.querySelectorAll("#choix-parcours .puce").forEach(b => b.addEventListener("click", () => {
+  definirParcours(b.dataset.parcours);
+  if (BRUT) toutDessiner();
+}));
+if (DEMO) { CLE = "demo"; ouvrir(); }
+else { CLE = store.lire("pyclasse:cle"); if (CLE) ouvrir(); }
+</script>
+</body>
+</html>

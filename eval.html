@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Évaluation · Technologie 4e</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<style>
+/* Mise en page : écran de connexion, consignes, puis épreuve plein écran (questions à gauche, question à droite). */
+:root {
+  --fond: #eef1f4; --papier: #ffffff; --encre: #16202c; --doux: #596779; --trait: #d3dae3;
+  --accent: #2b4c8c; --accent-fort: #1f3a6e; --surligne: #f2c230; --surligne-doux: #fbf0c8;
+  --ok: #1d8049; --ok-doux: #dcf1e4; --ko: #b93d2a; --ko-doux: #f8e1dc; --code-fond: #f7f9fb;
+  --f-titre: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-texte: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-code: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--fond); color: var(--encre); font: 16px/1.55 var(--f-texte); }
+button, input, textarea { font: inherit; color: inherit; }
+code, pre { font-family: var(--f-code); font-size: .92em; }
+:focus-visible { outline: 3px solid var(--surligne); outline-offset: 2px; }
+h1, h2 { font-family: var(--f-titre); line-height: 1.15; margin: 0; text-wrap: balance; }
+.bouton { border: 1.5px solid var(--trait); background: var(--papier); border-radius: 8px; padding: .55rem 1rem; cursor: pointer; font-weight: 700; }
+.bouton:hover:not(:disabled) { border-color: var(--accent); }
+.bouton:disabled { opacity: .5; cursor: progress; }
+.bouton.plein { background: var(--accent); border-color: var(--accent); color: #fff; }
+.bouton.plein:hover:not(:disabled) { background: var(--accent-fort); }
+.bouton.danger { background: var(--ko); border-color: var(--ko); color: #fff; }
+
+.centre { min-height: 100%; display: grid; place-items: center; padding: 2rem 16px; }
+.carte { width: min(560px, 100%); background: var(--papier); border: 1px solid var(--trait); border-radius: 16px; padding: 2rem 1.75rem; display: grid; gap: 1rem; }
+.carte h1 { font-size: 1.9rem; font-weight: 800; }
+.carte p { margin: 0; }
+.doux { color: var(--doux); }
+.surtitre { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-weight: 700; margin: 0; }
+.champ { display: grid; gap: .3rem; }
+.champ label { font-weight: 700; font-size: .95rem; }
+.champ input { border: 1.5px solid var(--trait); border-radius: 8px; padding: .65rem .8rem; background: var(--fond); font-family: var(--f-code); }
+.erreur { color: var(--ko); background: var(--ko-doux); border-radius: 8px; padding: .6rem .8rem; }
+.regles { margin: 0; padding-left: 1.2rem; display: grid; gap: .35rem; }
+.regles strong { color: var(--ko); }
+.fiche { display: grid; grid-template-columns: auto 1fr; gap: .2rem 1rem; background: var(--fond); border-radius: 10px; padding: .8rem 1rem; }
+.fiche dt { color: var(--doux); }
+.fiche dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Épreuve */
+#epreuve { height: 100%; display: grid; grid-template-rows: auto 1fr; }
+.barre { display: flex; align-items: center; gap: 1rem; padding: .6rem 16px; background: var(--encre); color: #fff; flex-wrap: wrap; }
+.barre .titre { font-family: var(--f-titre); font-weight: 600; flex: 1; min-width: 0; }
+.barre .titre small { font-family: var(--f-texte); font-weight: 400; opacity: .7; margin-left: .5rem; }
+.chrono { font-family: var(--f-code); font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; padding: .15rem .7rem; border-radius: 6px; background: rgba(255,255,255,.12); }
+.chrono.bientot { background: var(--surligne); color: var(--encre); }
+.sauve { font-size: .85rem; opacity: .8; }
+.corps { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 0; }
+#liste { background: var(--papier); border-right: 1px solid var(--trait); padding: 1rem .75rem; display: grid; gap: .4rem; align-content: start; overflow-y: auto; }
+.q-bouton { display: flex; justify-content: space-between; gap: .5rem; text-align: left; border: 1.5px solid var(--trait); background: var(--fond); border-radius: 8px; padding: .5rem .7rem; cursor: pointer; }
+.q-bouton small { color: var(--doux); font-variant-numeric: tabular-nums; }
+.q-bouton.repondu { border-color: var(--accent); }
+.q-bouton.repondu::after { content: "✓"; color: var(--accent); font-weight: 800; }
+.q-bouton.actif { background: var(--accent); border-color: var(--accent); color: #fff; }
+.q-bouton.actif small, .q-bouton.actif::after { color: #fff; }
+#liste .bouton { margin-top: 1rem; }
+#question { overflow-y: auto; padding: 1.5rem 16px 4rem; }
+.q-contenu { max-width: 860px; margin-inline: auto; display: grid; gap: 1rem; }
+.q-contenu h1 { font-size: 1.6rem; font-weight: 800; }
+.q-contenu h1 small { font-family: var(--f-texte); font-weight: 400; font-size: .55em; color: var(--doux); margin-left: .4rem; }
+.enonce { max-width: 72ch; font-size: 1.05rem; }
+.enonce p { margin: .4rem 0; }
+.enonce pre, pre.programme { background: var(--code-fond); border: 1px solid var(--trait); border-radius: 8px; padding: .7rem .9rem; overflow-x: auto; margin: .5rem 0; }
+.enonce pre.sortie { border-style: dashed; color: var(--doux); }
+pre.programme { font-size: 1rem; line-height: 1.6; }
+:not(pre) > code { background: var(--surligne-doux); padding: .05em .3em; border-radius: 4px; }
+.qcm { display: grid; gap: .5rem; }
+.schema-zone { background: var(--papier); border: 1px solid var(--trait); border-radius: 10px; padding: .8rem; overflow-x: auto; display: flex; justify-content: center; }
+.cor-schema { grid-column: 1 / -1; }
+.schema { max-width: 100%; height: auto; }
+.schema text { font: 14px var(--f-texte); dominant-baseline: central; text-anchor: middle; fill: var(--encre); }
+.schema .sch-etiquette { font-size: 12px; font-weight: 700; fill: var(--doux); dominant-baseline: auto; }
+.sch-debut, .sch-fin { fill: #dcefe9; stroke: #0d6a6a; stroke-width: 1.5; }
+.sch-action { fill: var(--papier); stroke: var(--encre); stroke-width: 1.5; }
+.sch-es { fill: var(--surligne-doux); stroke: #a86a00; stroke-width: 1.5; }
+.sch-si { fill: #e8eef9; stroke: var(--accent); stroke-width: 1.5; }
+.sch-fleche, .sch-trait { fill: none; stroke: var(--doux); stroke-width: 1.5; }
+.sch-pointe { fill: var(--doux); }
+.choix { display: flex; align-items: center; gap: .7rem; padding: .7rem .9rem; border: 1.5px solid var(--trait); border-radius: 10px; background: var(--papier); cursor: pointer; }
+.choix:hover { border-color: var(--accent); }
+.choix.coche { border-color: var(--accent); background: #e8eef9; }
+.choix input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
+.choix code { background: none; padding: 0; font-size: 1rem; }
+.reponse-texte { display: grid; gap: .3rem; }
+.reponse-texte label { font-weight: 700; }
+.reponse-texte textarea { font-family: var(--f-code); border: 1.5px solid var(--trait); border-radius: 8px; padding: .6rem .8rem; min-height: 7rem; resize: vertical; background: var(--papier); }
+.editeur { border: 1.5px solid var(--trait); border-radius: 10px; overflow: hidden; }
+.editeur:focus-within { border-color: var(--accent); }
+.CodeMirror { height: auto; min-height: 200px; font-family: var(--f-code); font-size: 15px; line-height: 1.6; background: var(--code-fond); }
+.CodeMirror-scroll { min-height: 200px; }
+.CodeMirror :focus-visible { outline: none; }
+.CodeMirror-gutters { background: var(--code-fond); border-right: 1px solid var(--trait); }
+.cm-s-default .cm-keyword { color: var(--accent); font-weight: 600; }
+.cm-s-default .cm-string { color: #a4561c; }
+.cm-s-default .cm-number { color: #1d6fb8; }
+.cm-s-default .cm-comment { color: var(--doux); font-style: italic; }
+.actions { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+.actions .espace { flex: 1; }
+.console { background: var(--papier); border: 1px solid var(--trait); border-radius: 10px; }
+.console-tete { padding: .4rem .9rem; border-bottom: 1px solid var(--trait); font-size: .85rem; color: var(--doux); }
+.console pre { margin: 0; padding: .7rem .9rem; min-height: 2.5rem; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow-y: auto; }
+.message { margin: 0 .9rem .8rem; padding: .6rem .8rem; border-radius: 8px; background: var(--ko-doux); }
+.chargement { display: inline-flex; gap: .5rem; align-items: center; color: var(--doux); font-size: .9rem; }
+.chargement::before { content: ""; width: 14px; height: 14px; border: 2px solid var(--trait); border-top-color: var(--accent); border-radius: 50%; animation: tourne .8s linear infinite; }
+@keyframes tourne { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .chargement::before { animation: none; } }
+
+/* Verrou et fenêtres */
+.voile { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(22, 32, 44, .82); }
+#verrou { background: var(--ko); }
+#verrou .carte { border: 0; }
+#verrou h1 { color: var(--ko); }
+.grand { font-size: 1.1rem; }
+#ecran-fin { min-height: 100%; padding: 2rem 16px 4rem; }
+.fin { max-width: 860px; margin-inline: auto; display: grid; gap: 1rem; }
+.fin-tete { width: 100%; text-align: center; justify-items: center; }
+.note { font-family: var(--f-titre); font-size: 4rem; font-weight: 800; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.note small { font-size: .4em; color: var(--doux); font-weight: 600; }
+.correction { display: grid; gap: .9rem; }
+.cor { background: var(--papier); border: 1px solid var(--trait); border-radius: 12px; overflow: hidden; }
+.cor header { display: flex; justify-content: space-between; gap: 1rem; padding: .6rem 1rem; border-left: 6px solid var(--doux); }
+.cor.plein header { border-left-color: var(--ok); background: var(--ok-doux); }
+.cor.zero header { border-left-color: var(--ko); background: var(--ko-doux); }
+.cor.partiel header { border-left-color: var(--surligne); background: var(--surligne-doux); }
+.cor .pts { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cor-corps { padding: .8rem 1rem 1rem; display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); }
+.cor-bloc { min-width: 0; }
+.cor-bloc span { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--doux); font-weight: 700; }
+.cor-bloc pre { margin: .2rem 0 0; background: var(--code-fond); border: 1px solid var(--trait); border-radius: 8px; padding: .5rem .7rem; white-space: pre; overflow-x: auto; }
+.cor-bloc.bon pre { border-color: var(--ok); background: var(--ok-doux); }
+.cor-bloc.prog { grid-column: 1 / -1; }
+.cor-info { grid-column: 1 / -1; margin: 0; color: var(--doux); }
+@media (max-width: 760px) {
+  #epreuve { height: auto; min-height: 100%; }
+  .corps { grid-template-columns: minmax(0, 1fr); }
+  #liste { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--trait); padding: .6rem 16px; }
+  #liste .bouton { margin-top: 0; }
+}
+/* ---------- Blocs dessinés (cours, énoncés) ---------- */
+.bk-exemple { margin: .7rem 0; padding: .8rem; background: var(--fond); border-radius: 10px; overflow-x: auto; }
+.bk-prog { display: inline-flex; flex-direction: column; align-items: flex-start; font: 700 14px/1.2 var(--f-texte); color: #fff; }
+.bk { --c: #FFAB19; display: inline-flex; flex-direction: column; align-items: stretch; margin-top: 2px; min-width: 3rem; }
+.bk > .bk-ligne { background: var(--c); border-radius: 6px; padding: .4rem .65rem; display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; text-shadow: 0 1px 0 rgba(0,0,0,.12); }
+.bk-evenement { --c: #FFBF00; } .bk-chapeau > .bk-ligne { border-radius: 18px 18px 6px 6px; padding-top: .7rem; color: #3a2a00; text-shadow: none; }
+.bk-controle { --c: #FFAB19; } .bk-action { --c: #9966FF; } .bk-variable { --c: #FF8C1A; }
+.bk-c > .bk-ligne { border-radius: 6px 6px 0 6px; }
+.bk-c > .bk-ligne + .bk-dedans { margin-top: 0; }
+.bk-dedans { border-left: 16px solid var(--c); padding: 2px 0 2px 2px; display: flex; flex-direction: column; align-items: flex-start; min-height: 18px; }
+.bk-c > .bk-dedans + .bk-ligne { border-radius: 0 6px 6px 0; }
+.bk-pied { background: var(--c); height: 14px; border-radius: 0 6px 6px 6px; }
+.bk-vide { height: 14px; }
+.bk-ovale { background: #fff; color: #333; border-radius: 99px; padding: .1rem .55rem; font-weight: 600; text-shadow: none; display: inline-flex; gap: .3rem; align-items: center; }
+.bk-ovale.bk-capteur { background: #5CB1D6; color: #fff; }
+.bk-ovale.bk-var { background: #FF8C1A; color: #fff; border: 1px solid rgba(0,0,0,.12); }
+.bk-ovale.bk-op { background: #59C059; color: #fff; border: 1px solid rgba(0,0,0,.12); }
+.bk-ovale.bk-menu { background: rgba(0,0,0,.15); color: #fff; }
+.bk-hexa { display: inline-flex; align-items: center; gap: .3rem; padding: .15rem 14px; background: #59C059; color: #fff; clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%); }
+.bk-hexa.bk-capteur { background: #5CB1D6; }
+.bk-hexa .bk-hexa { background: rgba(0,0,0,.12); }
+.bk-trou { display: inline-block; width: 2.6rem; height: 1.3rem; background: rgba(0,0,0,.2); clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%); }
+
+.bk-zone { margin: .6rem 0; padding: .8rem; background: var(--fond); border-radius: 10px; overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<!-- Connexion -->
+<section id="ecran-connexion" class="centre">
+  <form class="carte" id="form-connexion" autocomplete="off">
+    <p class="surtitre" id="etablissement"></p>
+    <h1>Évaluation de technologie</h1>
+    <p class="doux">Connecte-toi avec ton identifiant et ton code habituels.</p>
+    <div class="erreur" id="demo" hidden>Cette page fonctionne seulement quand le site est relié à la Google Sheet (adresse du script dans config.js).</div>
+    <div class="champ"><label for="c-id">Identifiant</label><input id="c-id" required autocapitalize="none" spellcheck="false"></div>
+    <div class="champ"><label for="c-code">Code à 4 chiffres</label><input id="c-code" required inputmode="numeric" maxlength="8"></div>
+    <div class="erreur" id="erreur-connexion" hidden></div>
+    <button class="bouton plein" id="b-connexion" type="submit">Se connecter</button>
+  </form>
+</section>
+
+<!-- Pas d'évaluation ouverte / déjà rendue -->
+<section id="ecran-info" class="centre" hidden>
+  <div class="carte">
+    <h1 id="info-titre"></h1>
+    <p id="info-texte"></p>
+    <button class="bouton" id="b-reessayer" type="button">Réessayer</button>
+  </div>
+</section>
+
+<!-- Consignes -->
+<section id="ecran-consignes" class="centre" hidden>
+  <div class="carte">
+    <p class="surtitre">Évaluation</p>
+    <h1 id="cs-titre"></h1>
+    <dl class="fiche">
+      <dt>Élève</dt><dd id="cs-eleve"></dd>
+      <dt>Durée</dt><dd id="cs-duree"></dd>
+      <dt>Questions</dt><dd id="cs-questions"></dd>
+    </dl>
+    <ul class="regles">
+      <li>L'évaluation s'affiche <strong>en plein écran</strong>.</li>
+      <li>Si tu quittes la page (autre onglet, autre fenêtre, touche <kbd>Échap</kbd>, rechargement), ton évaluation est <strong>bloquée</strong> et ton professeur est prévenu.</li>
+      <li>Le copier-coller est désactivé.</li>
+      <li>Tu peux <strong>exécuter</strong> ton code autant que tu veux. Tu ne sauras pas si ta réponse est juste : c'est ton professeur qui verra les résultats.</li>
+      <li>Tes réponses sont enregistrées au fur et à mesure. À la fin du temps, la copie est rendue automatiquement.</li>
+    </ul>
+    <p class="chargement" id="cs-python">Préparation de Python…</p>
+    <div class="erreur" id="cs-erreur" hidden></div>
+    <button class="bouton plein grand" id="b-commencer" type="button" disabled>Commencer l'évaluation</button>
+  </div>
+</section>
+
+<!-- Épreuve -->
+<div id="epreuve" hidden>
+  <header class="barre">
+    <div class="titre" id="ep-titre"></div>
+    <span class="sauve" id="ep-sauve"></span>
+    <span class="chrono" id="ep-chrono">30:00</span>
+  </header>
+  <div class="corps">
+    <nav id="liste" aria-label="Questions"></nav>
+    <main id="question">
+      <div class="q-contenu">
+        <div>
+          <p class="surtitre" id="q-num"></p>
+          <h1 id="q-titre"></h1>
+        </div>
+        <div class="enonce" id="q-enonce"></div>
+        <div class="schema-zone" id="q-schema" hidden></div>
+        <div class="bk-zone" id="q-blocs" hidden></div>
+        <pre class="programme" id="q-programme" hidden></pre>
+        <div class="qcm" id="q-qcm" role="radiogroup" aria-label="Choisis une réponse" hidden></div>
+        <div class="reponse-texte" id="q-texte" hidden>
+          <label for="q-reponse">Ta réponse (une ligne par ligne affichée)</label>
+          <textarea id="q-reponse" spellcheck="false" autocomplete="off"></textarea>
+        </div>
+        <div id="q-code" hidden>
+          <div class="editeur"><textarea id="code"></textarea></div>
+        </div>
+        <div class="actions">
+          <button class="bouton" id="b-executer" type="button" hidden>Exécuter</button>
+          <button class="bouton" id="b-depart" type="button" hidden>Revenir au code de départ</button>
+          <span class="espace"></span>
+          <button class="bouton" id="b-prec" type="button">← Précédente</button>
+          <button class="bouton plein" id="b-suiv" type="button">Suivante →</button>
+        </div>
+        <div class="console" id="console" hidden>
+          <div class="console-tete">Ce que ton programme affiche</div>
+          <pre id="sortie"></pre>
+          <div class="message" id="message" hidden></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Verrou -->
+<div class="voile" id="verrou" hidden>
+  <div class="carte" role="alertdialog" aria-labelledby="v-titre">
+    <h1 id="v-titre">Évaluation bloquée</h1>
+    <p class="grand" id="v-texte">Tu as quitté la page de l'évaluation. Lève la main : ton professeur doit venir débloquer ton poste.</p>
+    <p class="doux">Tes réponses sont conservées. Le temps continue de s'écouler.</p>
+    <div class="champ"><label for="v-code">Code du professeur</label><input id="v-code" type="password" autocomplete="off" inputmode="numeric"></div>
+    <div class="erreur" id="v-erreur" hidden></div>
+    <button class="bouton plein" id="b-debloquer" type="button">Débloquer</button>
+  </div>
+</div>
+
+<!-- Confirmation du rendu -->
+<div class="voile" id="confirmer" hidden>
+  <div class="carte" role="dialog" aria-labelledby="cf-titre">
+    <h1 id="cf-titre">Rendre ta copie ?</h1>
+    <p id="cf-texte"></p>
+    <p class="doux">Tu ne pourras plus modifier tes réponses.</p>
+    <div class="actions">
+      <button class="bouton" id="b-annuler" type="button">Continuer à travailler</button>
+      <span class="espace"></span>
+      <button class="bouton danger" id="b-rendre-ok" type="button">Rendre ma copie</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fin -->
+<section id="ecran-fin" hidden>
+  <div class="fin">
+    <div class="carte fin-tete">
+      <h1 id="fin-titre">Copie rendue</h1>
+      <p class="note"><span id="fin-note">–</span><small> / 20</small></p>
+      <p id="fin-texte">Ta copie a bien été enregistrée.</p>
+    </div>
+    <div class="correction" id="fin-correction" hidden></div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="config.js?v=20261015a"></script>
+<script src="blocs-moteur.js?v=20261015a"></script>
+<script src="evaluations.js?v=20261015a"></script>
+<script src="verif.js?v=20261015a"></script>
+<script src="schema.js?v=20261015a"></script>
+<script>
+"use strict";
+const URL_SERVEUR = (window.CONFIG && CONFIG.url || "").trim();
+const $ = id => document.getElementById(id);
+const ecrans = ["ecran-connexion", "ecran-info", "ecran-consignes", "epreuve", "ecran-fin"];
+function montrer(id) { ecrans.forEach(e => $(e).hidden = e !== id); }
+const local = {
+  lire(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  ecrire(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  suppr(k) { try { localStorage.removeItem(k); } catch {} }
+};
+
+/* ---------- État ---------- */
+const S = {
+  eleve: null, meta: null, questions: [], debut: null, decalage: 0,
+  reponses: {}, actuelle: 0, actif: false, verrouille: false, termine: false,
+  file: [], modifie: false, ignorerJusqua: 0
+};
+const cleLocale = () => `pyeval:${S.eleve.id}:${S.meta.id}`;
+const maintenant = () => Date.now() + S.decalage;
+// Les réponses sauvegardées sont marquées avec la version du sujet : si le sujet change,
+// les anciennes réponses sont ignorées au lieu d'apparaître dans les nouvelles questions.
+function sauverLocal() { local.ecrire(cleLocale(), { version: S.meta.iv, reponses: S.reponses, file: S.file }); }
+
+/* ---------- Réseau ---------- */
+async function appelGet(params) {
+  const r = await fetch(URL_SERVEUR + "?" + new URLSearchParams(params));
+  return r.json();
+}
+async function appelPost(corps) {
+  const r = await fetch(URL_SERVEUR, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(corps) });
+  return r.json();
+}
+function evenement(type, contenu) {
+  if (type === "sauvegarde") S.file = S.file.filter(e => e.type !== "sauvegarde");
+  S.file.push({ type, contenu: contenu === undefined ? "" : JSON.stringify(contenu) });
+  sauverLocal();
+  envoyerFile();
+}
+let envoiEnCours = false;
+async function envoyerFile() {
+  if (envoiEnCours || !S.file.length) return majSauve();
+  envoiEnCours = true;
+  majSauve();
+  while (S.file.length) {
+    const e = S.file[0];
+    try {
+      const d = await appelPost({ action: "evalEvenement", id: S.eleve.id, code: S.eleve.code, evaluation: S.meta.id, type: e.type, contenu: e.contenu });
+      if (!d.ok && d.erreur !== "pas_commencee") throw new Error(d.erreur);
+      S.file.shift();
+      sauverLocal();
+      if (e.type === "rendu") termine();
+    } catch {
+      break;
+    }
+  }
+  envoiEnCours = false;
+  majSauve();
+  if (S.file.length) setTimeout(envoyerFile, 4000);
+}
+function majSauve() {
+  const el = $("ep-sauve");
+  if (!el) return;
+  el.textContent = S.file.length ? "Enregistrement…" : "Réponses enregistrées";
+}
+
+/* ---------- Déchiffrement ---------- */
+function b64(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
+async function dechiffrer(meta, cle) {
+  const k = await crypto.subtle.importKey("raw", b64(cle), "AES-GCM", false, ["decrypt"]);
+  const clair = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(meta.iv) }, k, b64(meta.donnees));
+  return JSON.parse(new TextDecoder().decode(clair)).questions;
+}
+
+/* ---------- Tirage propre à chaque élève ---------- */
+function graine(t) { let h = 2166136261; for (const c of t) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function generateur(g) {
+  return () => { g = (g + 0x6D2B79F5) >>> 0; let t = g; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function tirerQuestions(brutes) {
+  const alea = generateur(graine(S.eleve.id + ":" + S.meta.id));
+  const ordre = brutes.map((_, i) => i);
+  for (let i = ordre.length - 1; i > 0; i--) { const j = Math.floor(alea() * (i + 1)); [ordre[i], ordre[j]] = [ordre[j], ordre[i]]; }
+  return ordre.map(k => {
+    const q = brutes[k], v = Math.floor(alea() * q.variantes.length);
+    const choisie = { ...q.variantes[v], points: q.points, titre: q.titre, num: k + 1, version: "ABC"[v] };
+    if (choisie.type === "qcm") {
+      choisie.bonneReponse = choisie.choix[choisie.bonne];
+      const c = [...choisie.choix];
+      for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(alea() * (i + 1)); [c[i], c[j]] = [c[j], c[i]]; }
+      choisie.choix = c;
+    }
+    return choisie;
+  });
+}
+const sur20 = (total, max) => max ? Math.round(total / max * 20 * 2) / 2 : 0;
+const virgule = n => String(n).replace(".", ",");
+
+/* ---------- Python ---------- */
+class Python {
+  constructor() { this.attente = new Map(); this.n = 0; this.demarrer(); }
+  demarrer() {
+    this.pret = new Promise((ok, ko) => { this._ok = ok; this._ko = ko; });
+    this.w = new Worker("worker.js?v=20261015a");
+    this.w.onmessage = e => {
+      const d = e.data;
+      if (d.type === "pret") this._ok();
+      else if (d.type === "echec") this._ko(d.message);
+      else if (d.type === "resultat") { const f = this.attente.get(d.id); if (f) { this.attente.delete(d.id); f(d); } }
+    };
+  }
+  async lancer(params, delai = 3000) {
+    await this.pret;
+    const id = ++this.n;
+    return new Promise(res => {
+      const m = setTimeout(() => {
+        this.attente.delete(id); this.w.terminate(); this.demarrer();
+        res({ sortie: "", erreur: { type: "Expire", message: "", ligne: null } });
+      }, delai);
+      this.attente.set(id, d => { clearTimeout(m); res(d); });
+      this.w.postMessage({ id, ...params });
+    });
+  }
+}
+let python = null;
+
+/* ---------- Connexion ---------- */
+$("etablissement").textContent = (window.CONFIG && CONFIG.etablissement) || "";
+if (!URL_SERVEUR) { $("demo").hidden = false; $("b-connexion").disabled = true; }
+const session = ((local.lire("techno:session", null) || {}).membres || [])[0] || null;
+if (session && session.code) { $("c-id").value = session.id; }
+
+$("form-connexion").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  S.eleve = { id: $("c-id").value.trim().toLowerCase(), code: $("c-code").value.trim() };
+  await charger();
+});
+$("b-reessayer").addEventListener("click", charger);
+
+async function charger() {
+  const err = $("erreur-connexion");
+  err.hidden = true;
+  $("b-connexion").disabled = true;
+  try {
+    const d = await appelGet({ action: "evalEtat", id: S.eleve.id, code: S.eleve.code });
+    if (!d.ok) { err.textContent = "Identifiant ou code incorrect."; err.hidden = false; montrer("ecran-connexion"); return; }
+    S.eleve.prenom = d.prenom;
+    S.eleve.classe = d.classe;
+    if (!d.eval) return info("Pas d'évaluation en cours", `Bonjour ${d.prenom}. Ton professeur n'a pas encore ouvert l'évaluation. Attends son signal, puis clique sur Réessayer.`);
+    S.meta = (window.EVALUATIONS || []).find(e => e.id === d.eval.id);
+    if (!S.meta) return info("Page à mettre à jour", "Cette évaluation n'est pas encore sur le site. Préviens ton professeur.");
+    if (d.eval.rendu) return info("Copie déjà rendue", d.eval.note !== undefined && d.eval.note !== null ? `Tu as déjà rendu ta copie. Ta note : ${virgule(d.eval.note)} / 20.` : "Tu as déjà rendu ta copie pour cette évaluation.");
+    S.questions = tirerQuestions(await dechiffrer(S.meta, d.eval.cle));
+    S.decalage = d.eval.maintenant - Date.now();
+    S.debut = d.eval.debut;
+    const l = local.lire(cleLocale(), {});
+    const duServeur = d.eval.reponses && d.eval.reponses.version === S.meta.iv ? d.eval.reponses.reponses : {};
+    const enLocal = l.version === S.meta.iv ? (l.reponses || {}) : {};
+    S.reponses = Object.assign({}, duServeur, enLocal);
+    if (l.version !== S.meta.iv) l.file = [];
+    S.file = l.file || [];
+    S.reprise = !!S.debut;
+    S.verrouille = !!d.eval.verrouille;
+    consignes();
+  } catch (e) {
+    err.textContent = "Connexion impossible. Vérifie l'accès à Internet puis réessaie.";
+    err.hidden = false;
+    montrer("ecran-connexion");
+  } finally {
+    $("b-connexion").disabled = false;
+  }
+}
+function info(titre, texte) {
+  $("info-titre").textContent = titre;
+  $("info-texte").textContent = texte;
+  $("b-reessayer").hidden = false;
+  montrer("ecran-info");
+}
+
+/* ---------- Consignes ---------- */
+function consignes() {
+  $("cs-titre").textContent = S.meta.titre;
+  $("cs-eleve").textContent = `${S.eleve.prenom} · ${S.eleve.classe}`;
+  $("cs-duree").textContent = S.reprise ? `${S.meta.duree} min (déjà commencée)` : `${S.meta.duree} min`;
+  $("cs-questions").textContent = `${S.meta.nb} questions · ${S.meta.total} points`;
+  $("b-commencer").textContent = S.reprise ? "Reprendre l'évaluation" : "Commencer l'évaluation";
+  montrer("ecran-consignes");
+  // Pas de question de code en 4e : rien à préparer.
+  $("cs-python").hidden = true; $("b-commencer").disabled = false;
+}
+
+async function pleinEcran() {
+  if (document.fullscreenElement) return true;
+  try { await document.documentElement.requestFullscreen({ navigationUI: "hide" }); return true; }
+  catch { return false; }
+}
+
+$("b-commencer").addEventListener("click", async () => {
+  const csErr = $("cs-erreur");
+  csErr.hidden = true;
+  S.ignorerJusqua = Date.now() + 2000;
+  const ok = await pleinEcran();
+  if (!ok) { csErr.textContent = "Le plein écran est obligatoire. Utilise Chrome, Edge ou Firefox sur un ordinateur, puis réessaie."; csErr.hidden = false; return; }
+  $("b-commencer").disabled = true;
+  if (!S.debut) {
+    try {
+      const d = await appelPost({ action: "evalEvenement", id: S.eleve.id, code: S.eleve.code, evaluation: S.meta.id, type: "debut" });
+      if (!d.ok) throw new Error(d.erreur);
+      S.debut = d.debut;
+    } catch (e) {
+      csErr.textContent = e.message === "fermee" ? "L'évaluation vient d'être fermée par ton professeur." : "Impossible de démarrer : vérifie la connexion puis réessaie.";
+      csErr.hidden = false;
+      $("b-commencer").disabled = false;
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      return;
+    }
+  }
+  demarrerEpreuve();
+});
+
+/* ---------- Épreuve ---------- */
+const editeur = CodeMirror.fromTextArea($("code"), {
+  mode: "python", lineNumbers: true, indentUnit: 4, tabSize: 4, indentWithTabs: false,
+  dragDrop: false, inputStyle: "contenteditable",
+  extraKeys: {
+    Tab: cm => cm.somethingSelected() ? cm.indentSelection("add") : cm.replaceSelection("    ", "end"),
+    "Shift-Tab": cm => cm.indentSelection("subtract"),
+    "Ctrl-Enter": () => executer(), "Cmd-Enter": () => executer()
+  }
+});
+editeur.on("beforeChange", (cm, ch) => { if (ch.origin === "paste" || ch.origin === "drop") ch.cancel(); });
+editeur.on("change", () => { const q = S.questions[S.actuelle]; if (q && q.type === "code") { S.reponses[S.actuelle] = editeur.getValue(); modifie(); } });
+$("q-reponse").addEventListener("input", () => { S.reponses[S.actuelle] = $("q-reponse").value; modifie(); });
+function modifie() { S.modifie = true; sauverLocal(); dessinerListe(); }
+
+function demarrerEpreuve() {
+  S.actif = true;
+  $("ep-titre").innerHTML = "";
+  $("ep-titre").append(S.meta.titre);
+  const sm = document.createElement("small"); sm.textContent = `${S.eleve.prenom} · ${S.eleve.classe}`; $("ep-titre").appendChild(sm);
+  montrer("epreuve");
+  afficherQuestion(0);
+  majSauve();
+  envoyerFile();
+  setInterval(tic, 1000);
+  setInterval(() => { if (S.modifie && !S.termine) { S.modifie = false; evenement("sauvegarde", { version: S.meta.iv, reponses: S.reponses }); } }, 30000);
+  tic();
+  if (S.verrouille) verrouiller(null, true);
+  else if (S.reprise) incident("reprise", true);
+}
+
+function dessinerChoix(q, i) {
+  const zone = $("q-qcm");
+  zone.innerHTML = "";
+  q.choix.forEach((c, k) => {
+    const l = document.createElement("label");
+    l.className = "choix" + (S.reponses[i] === c ? " coche" : "");
+    const r = document.createElement("input");
+    r.type = "radio"; r.name = "qcm"; r.id = "choix-" + k; r.checked = S.reponses[i] === c;
+    r.addEventListener("change", () => { S.reponses[i] = c; modifie(); dessinerChoix(q, i); });
+    const t = document.createElement("code"); t.textContent = c;
+    l.append(r, t);
+    zone.appendChild(l);
+  });
+}
+function estRepondu(i) {
+  const q = S.questions[i], r = S.reponses[i];
+  if (r === undefined || !String(r).trim()) return false;
+  return q.type !== "code" || r.trim() !== (q.depart || "").trim();
+}
+function dessinerListe() {
+  const nav = $("liste");
+  nav.innerHTML = "";
+  S.questions.forEach((q, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "q-bouton" + (i === S.actuelle ? " actif" : "") + (estRepondu(i) ? " repondu" : "");
+    b.innerHTML = `<span>Question ${i + 1}</span><small>${q.points} pts</small>`;
+    b.addEventListener("click", () => afficherQuestion(i));
+    nav.appendChild(b);
+  });
+  const r = document.createElement("button");
+  r.type = "button"; r.className = "bouton danger"; r.textContent = "Rendre ma copie";
+  r.addEventListener("click", demanderRendu);
+  nav.appendChild(r);
+}
+
+function afficherQuestion(i) {
+  S.actuelle = i;
+  const q = S.questions[i];
+  $("q-num").textContent = `Question ${i + 1} sur ${S.questions.length}`;
+  $("q-titre").innerHTML = "";
+  $("q-titre").append(q.titre);
+  const sm = document.createElement("small"); sm.textContent = `${q.points} points`; $("q-titre").appendChild(sm);
+  $("q-enonce").innerHTML = q.enonce;
+  $("q-schema").hidden = !q.schema;
+  $("q-schema").innerHTML = q.schema ? Schema.dessiner(q.schema) : "";
+  $("q-blocs").hidden = !q.blocs;
+  $("q-blocs").innerHTML = q.blocs && window.Blocs ? Blocs.enHTML(q.blocs.prog, q.blocs.objet) : "";
+  const code = q.type === "code", qcm = q.type === "qcm";
+  $("q-programme").hidden = code || !q.programme;
+  $("q-texte").hidden = code || qcm;
+  $("q-qcm").hidden = !qcm;
+  $("q-code").hidden = !code;
+  $("b-executer").hidden = !code;
+  $("b-depart").hidden = !code;
+  $("console").hidden = true;
+  if (code) {
+    const r = S.reponses[i];
+    editeur.setValue(r !== undefined && String(r).trim() ? r : (q.depart || ""));
+    editeur.clearHistory();
+    setTimeout(() => { editeur.refresh(); editeur.focus(); }, 0);
+  } else {
+    $("q-programme").textContent = q.programme || "";
+    if (qcm) dessinerChoix(q, i);
+    else $("q-reponse").value = S.reponses[i] || "";
+  }
+  $("b-prec").disabled = i === 0;
+  $("b-suiv").hidden = i === S.questions.length - 1;
+  dessinerListe();
+  $("question").scrollTop = 0;
+}
+$("b-prec").addEventListener("click", () => afficherQuestion(Math.max(0, S.actuelle - 1)));
+$("b-suiv").addEventListener("click", () => afficherQuestion(Math.min(S.questions.length - 1, S.actuelle + 1)));
+$("b-depart").addEventListener("click", () => { editeur.setValue(S.questions[S.actuelle].depart || ""); editeur.focus(); });
+
+let execEnCours = false;
+async function executer() {
+  const q = S.questions[S.actuelle];
+  if (!q || q.type !== "code" || execEnCours || S.verrouille) return;
+  execEnCours = true;
+  $("b-executer").disabled = true;
+  $("console").hidden = false;
+  $("sortie").textContent = "…";
+  $("message").hidden = true;
+  const r = await python.lancer({ code: editeur.getValue(), entree: "", echo: true });
+  $("sortie").textContent = r.sortie || (r.erreur ? "(rien n'a été affiché)" : "(le programme n'affiche rien)");
+  const m = VERIF.messageErreur(r.erreur);
+  if (m) { $("message").textContent = "Problème : " + m.texte; $("message").hidden = false; }
+  $("b-executer").disabled = false;
+  execEnCours = false;
+}
+$("b-executer").addEventListener("click", executer);
+
+/* ---------- Chronomètre ---------- */
+function tic() {
+  if (!S.debut || S.termine) return;
+  const reste = Math.max(0, S.debut + S.meta.duree * 60000 - maintenant());
+  const m = Math.floor(reste / 60000), s = Math.floor(reste / 1000) % 60;
+  $("ep-chrono").textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  $("ep-chrono").classList.toggle("bientot", reste < 5 * 60000);
+  if (reste <= 0) rendre(true);
+}
+
+/* ---------- Surveillance ---------- */
+const NOMS_INCIDENTS = { onglet: "changement d'onglet ou de fenêtre", fenetre: "sortie de la fenêtre", plein_ecran: "sortie du plein écran", reprise: "page rechargée ou rouverte" };
+function incident(type, force) {
+  if (!S.actif || S.termine || S.verrouille || (!force && Date.now() < S.ignorerJusqua)) return;
+  evenement("incident", { type, question: S.actuelle + 1 });
+  verrouiller(type);
+}
+function verrouiller(type, depuisServeur) {
+  S.verrouille = true;
+  sauverLocal();
+  const heure = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  $("v-texte").textContent = depuisServeur
+    ? "Ton évaluation a été bloquée. Lève la main : ton professeur doit venir débloquer ton poste."
+    : `Tu as quitté l'évaluation à ${heure} (${NOMS_INCIDENTS[type] || type}). Lève la main : ton professeur doit venir débloquer ton poste.`;
+  $("v-code").value = "";
+  $("v-erreur").hidden = true;
+  $("verrou").hidden = false;
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden) incident("onglet"); });
+window.addEventListener("blur", () => setTimeout(() => { if (!document.hasFocus()) incident(document.hidden ? "onglet" : "fenetre"); }, 300));
+document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) incident("plein_ecran"); });
+window.addEventListener("beforeunload", e => { if (S.actif && !S.termine) { e.preventDefault(); e.returnValue = ""; } });
+["copy", "cut", "paste", "contextmenu", "dragstart", "drop"].forEach(t => document.addEventListener(t, e => { if (S.actif && !S.termine) e.preventDefault(); }, true));
+document.addEventListener("keydown", e => {
+  if (!S.actif || S.termine) return;
+  const k = e.key.toLowerCase(), ctrl = e.ctrlKey || e.metaKey;
+  if (k === "f12" || (ctrl && e.shiftKey && ["i", "j", "c"].includes(k)) || (ctrl && ["u", "s", "p", "v", "c", "x", "o"].includes(k))) {
+    e.preventDefault(); e.stopPropagation();
+  }
+}, true);
+
+$("b-debloquer").addEventListener("click", async () => {
+  S.ignorerJusqua = Date.now() + 2500;
+  await pleinEcran();
+  const cle = $("v-code").value.trim();
+  $("v-erreur").hidden = true;
+  $("b-debloquer").disabled = true;
+  try {
+    const d = await appelPost({ action: "debloquer", id: S.eleve.id, code: S.eleve.code, evaluation: S.meta.id, cle });
+    if (!d.ok) throw new Error(d.erreur);
+    S.verrouille = false;
+    S.ignorerJusqua = Date.now() + 1500;
+    $("verrou").hidden = true;
+    if (!document.fullscreenElement) { const ok = await pleinEcran(); if (!ok) verrouiller("plein_ecran"); }
+  } catch (e) {
+    $("v-erreur").textContent = e.message === "code_prof" ? "Code incorrect." : "Vérification impossible : connexion Internet ?";
+    $("v-erreur").hidden = false;
+  }
+  $("b-debloquer").disabled = false;
+});
+
+/* ---------- Rendu et correction ---------- */
+function demanderRendu() {
+  const n = S.questions.filter((q, i) => estRepondu(i)).length;
+  $("cf-texte").textContent = `Tu as répondu à ${n} question${n > 1 ? "s" : ""} sur ${S.questions.length}.`;
+  $("confirmer").hidden = false;
+}
+$("b-annuler").addEventListener("click", () => { $("confirmer").hidden = true; });
+$("b-rendre-ok").addEventListener("click", () => { $("confirmer").hidden = true; rendre(false); });
+
+function normaliserReponse(t) {
+  return String(t || "").replace(/\r/g, "").split("\n").map(l => l.trim().replace(/\s+/g, " ")).filter((l, i, a) => l !== "" || (i > 0 && i < a.length - 1)).join("\n").trim().toLowerCase();
+}
+function derniereLigne(t) { const l = String(t).replace(/\r/g, "").split("\n").map(x => x.trimEnd()).filter(x => x !== ""); return l.length ? l[l.length - 1] : ""; }
+
+async function corrigerQuestion(q, rep) {
+  if (q.type === "qcm") {
+    const ok = rep === q.bonneReponse;
+    return { q: q.num, v: q.version, points: ok ? q.points : 0, max: q.points, juste: ok };
+  }
+  if (q.type === "prediction") {
+    const ok = [q.attendu, ...(q.accepte || [])].some(a => normaliserReponse(a) === normaliserReponse(rep));
+    return { q: q.num, v: q.version, points: ok ? q.points : 0, max: q.points, juste: ok };
+  }
+  const code = rep !== undefined && String(rep).trim() ? rep : (q.depart || "");
+  const regles = VERIF.problemesDeCode(q, code);
+  let ok = 0, erreur = "";
+  for (const t of q.tests) {
+    const r = await python.lancer({ code, entree: t.entree || "", ajout: t.ajout || "", echo: false });
+    const obtenu = t.ajout ? derniereLigne(r.sortie) : VERIF.normaliser(r.sortie);
+    const attendu = t.ajout ? derniereLigne(t.attendu) : VERIF.normaliser(t.attendu);
+    if (!r.erreur && obtenu === attendu) ok++;
+    else if (r.erreur && !erreur) erreur = r.erreur.type;
+    if (r.erreur && (r.erreur.type === "Expire" || /SyntaxError|IndentationError|TabError/.test(r.erreur.type))) break;
+  }
+  let p = q.points * ok / q.tests.length;
+  if (regles.length) p = p / 2;
+  p = Math.round(p * 2) / 2;
+  return { q: q.num, v: q.version, points: p, max: q.points, tests: `${ok}/${q.tests.length}`, regles, erreur };
+}
+
+async function rendre(auto) {
+  if (S.termine || S.rendant) return;
+  S.rendant = true;
+  S.actif = false;
+  $("verrou").hidden = true;
+  $("confirmer").hidden = true;
+  info("Correction en cours…", "Ne ferme pas la page.");
+  $("b-reessayer").hidden = true;
+  if (python) await python.pret;
+  const details = [];
+  for (let i = 0; i < S.questions.length; i++) details.push(await corrigerQuestion(S.questions[i], S.reponses[i]));
+  const total = details.reduce((a, d) => a + d.points, 0);
+  const max = details.reduce((a, d) => a + d.max, 0);
+  const note20 = sur20(total, max);
+  S.resultat = { total, max, note20, details };
+  evenement("rendu", { total, max, note20, details, reponses: S.reponses, auto, fin: maintenant() });
+  info("Envoi de ta copie…", "Ne ferme pas la page tant que ce message est affiché.");
+  $("b-reessayer").hidden = true;
+}
+function termine() {
+  S.termine = true;
+  local.suppr(cleLocale());
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  afficherCorrection();
+  montrer("ecran-fin");
+}
+
+function bloc(etiquette, texte, classe) {
+  const d = document.createElement("div");
+  d.className = "cor-bloc " + (classe || "");
+  const e = document.createElement("span"); e.textContent = etiquette;
+  const p = document.createElement("pre"); p.textContent = texte;
+  d.append(e, p);
+  return d;
+}
+function afficherCorrection() {
+  const r = S.resultat;
+  if (!r) return;
+  $("fin-titre").textContent = "Copie rendue";
+  $("fin-note").textContent = virgule(r.note20);
+  $("fin-texte").textContent = `Tu as obtenu ${virgule(r.total)} points sur ${r.max}. Voici la correction, question par question.`;
+  const zone = $("fin-correction");
+  zone.innerHTML = "";
+  S.questions.forEach((q, i) => {
+    const d = r.details[i];
+    const art = document.createElement("article");
+    art.className = "cor" + (d.points === d.max ? " plein" : d.points === 0 ? " zero" : " partiel");
+    const h = document.createElement("header");
+    const t = document.createElement("strong"); t.textContent = `Question ${i + 1} · ${q.titre}`;
+    const pts = document.createElement("span"); pts.className = "pts"; pts.textContent = `${virgule(d.points)} / ${d.max}`;
+    h.append(t, pts);
+    art.appendChild(h);
+    const corps = document.createElement("div"); corps.className = "cor-corps";
+    if (q.schema) { const z = document.createElement("div"); z.className = "schema-zone cor-schema"; z.innerHTML = Schema.dessiner(q.schema); corps.appendChild(z); }
+    if (q.blocs && window.Blocs) { const z = document.createElement("div"); z.className = "bk-zone"; z.innerHTML = Blocs.enHTML(q.blocs.prog, q.blocs.objet); corps.appendChild(z); }
+    if (q.type === "qcm") {
+      if (q.programme) corps.appendChild(bloc("L'instruction", q.programme, "prog"));
+      corps.appendChild(bloc("Ta réponse", S.reponses[i] || "(pas de réponse)"));
+      corps.appendChild(bloc("Bonne réponse", q.bonneReponse, "bon"));
+    } else if (q.type === "prediction") {
+      if (q.programme) corps.appendChild(bloc("Le programme", q.programme, "prog"));
+      corps.appendChild(bloc("Ta réponse", (S.reponses[i] || "").trim() || "(pas de réponse)"));
+      corps.appendChild(bloc("Bonne réponse", q.attendu, "bon"));
+    } else {
+      const rep = S.reponses[i] !== undefined && String(S.reponses[i]).trim() ? S.reponses[i] : "(pas de réponse)";
+      corps.appendChild(bloc("Ton programme", rep));
+      corps.appendChild(bloc("Une solution", q.corrige || "", "bon"));
+      const infos = [`Tests réussis : ${d.tests}`];
+      if (d.regles && d.regles.length) infos.push("Consigne non respectée : " + d.regles.join(" ") + " (points divisés par 2)");
+      const p = document.createElement("p"); p.className = "cor-info"; p.textContent = infos.join(" · ");
+      corps.appendChild(p);
+    }
+    if (q.explication) { const p = document.createElement("p"); p.className = "cor-info"; p.textContent = q.explication; corps.appendChild(p); }
+    art.appendChild(corps);
+    zone.appendChild(art);
+  });
+  zone.hidden = false;
+}
+</script>
+</body>
+</html>

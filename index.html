@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Technologie 4e · Programmer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css?v=20261015a">
+<style>
+:root { --algo: #2b4c8c; --prog: #9966FF; }
+@media (prefers-color-scheme: dark) { :root { --algo: #8aa8e6; --prog: #b794ff; } }
+body { min-height: 100vh; }
+#app { height: auto; display: block; }
+#ecran-connexion { min-height: 100vh; }
+.onglets { display: flex; gap: .3rem; padding: 0 16px; background: var(--papier); border-bottom: 1px solid var(--trait); overflow-x: auto; }
+.onglets a { padding: .75rem 1rem; font-weight: 700; text-decoration: none; color: var(--doux); border-bottom: 3px solid transparent; white-space: nowrap; }
+.onglets a:hover { color: var(--encre); }
+.onglets a.actif { color: var(--accent); border-bottom-color: var(--accent); }
+main { max-width: 1040px; margin: 0 auto; padding: 1.8rem 16px 4rem; display: grid; gap: 1.6rem; }
+.bonjour h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; }
+.bonjour p { margin: .3rem 0 0; color: var(--doux); max-width: 62ch; }
+.cartes { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1rem; }
+.carte { background: var(--papier); border: 1px solid var(--trait); border-radius: 14px; padding: 1.3rem 1.3rem 1.2rem; display: grid; gap: .9rem; align-content: start; border-top: 6px solid var(--prog); }
+.carte.algo { border-top-color: var(--algo); }
+.carte.evals { border-top-color: var(--surligne); }
+.carte .etape { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--doux); }
+.carte h2 { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: .55rem; }
+.carte p { margin: 0; color: var(--doux); }
+.icone-carte { width: 38px; height: 38px; flex: none; }
+.progression { display: grid; gap: .5rem; font-size: .9rem; color: var(--doux); font-variant-numeric: tabular-nums; }
+.progression .ligne { display: grid; gap: .25rem; }
+.carte .piste { height: 10px; background: var(--trait); border-radius: 99px; overflow: hidden; }
+.carte .rempli { height: 100%; background: var(--prog); border-radius: 99px; transition: width .4s; }
+.algo .rempli { background: var(--algo); }
+.boutons { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.boutons .bouton { justify-content: center; text-decoration: none; }
+.carte .bouton.plein { background: var(--prog); border-color: var(--prog); }
+.algo .bouton.plein { background: var(--algo); border-color: var(--algo); }
+.evals .bouton.plein { background: var(--accent); border-color: var(--accent); }
+.etat-eval { border-radius: 10px; padding: .8rem .9rem; display: grid; gap: .5rem; }
+.etat-eval.ferme { background: var(--fond); color: var(--doux); }
+.etat-eval.ferme strong { color: var(--encre); display: flex; gap: .45rem; align-items: center; }
+.etat-eval.ouvert { background: var(--surligne-doux); }
+.bloc-cours { background: var(--papier); border: 1px solid var(--trait); border-radius: 14px; padding: 1.2rem 1.3rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.bloc-cours h2 { font-size: 1.25rem; }
+.bloc-cours p { margin: .2rem 0 0; color: var(--doux); }
+.bloc-cours .boutons { margin-left: auto; display: flex; flex-wrap: wrap; }
+@media (max-width: 560px) { .boutons { grid-template-columns: 1fr; } .bloc-cours .boutons { margin-left: 0; width: 100%; } .bloc-cours .boutons .bouton { flex: 1; } }
+</style>
+</head>
+<body>
+
+<section id="ecran-connexion">
+  <form class="carte-connexion" id="form-connexion" autocomplete="off">
+    <div>
+      <p class="surtitre" id="etablissement"></p>
+      <h1>Programmer <span>en 4e</span></h1>
+    </div>
+    <p>Algorigrammes et programmation d'objets techniques. Connecte-toi avec l'identifiant et le code donnés par ton professeur.</p>
+    <div class="bandeau-demo" id="bandeau-demo" hidden>Mode démonstration : le site n'est pas encore relié à la Google Sheet. Tape n'importe quel identifiant ; rien n'est envoyé.</div>
+    <div class="eleve-bloc">
+      <b id="titre-eleve1">Élève</b>
+      <div class="champ"><label for="c-id">Identifiant</label><input id="c-id" required placeholder="efi26_lm07" autocapitalize="none" spellcheck="false"></div>
+      <div class="champ code"><label for="c-code">Code</label><input id="c-code" inputmode="numeric" maxlength="8" placeholder="••••"></div>
+    </div>
+    <label class="binome-choix"><input type="checkbox" id="c-binome"> Nous sommes deux sur cet ordinateur</label>
+    <div class="eleve-bloc" id="bloc-eleve2" hidden>
+      <b>Élève 2</b>
+      <div class="champ"><label for="c-id2">Identifiant</label><input id="c-id2" placeholder="efi26_kb12" autocapitalize="none" spellcheck="false"></div>
+      <div class="champ code"><label for="c-code2">Code</label><input id="c-code2" inputmode="numeric" maxlength="8" placeholder="••••"></div>
+    </div>
+    <div class="erreur-connexion" id="erreur-connexion" hidden></div>
+    <button class="bouton plein" type="submit" id="b-connexion">Se connecter</button>
+  </form>
+</section>
+
+<div id="app" hidden>
+  <header class="barre">
+    <div class="marque">Programmer <span>en 4e</span></div>
+    <div class="eleve"><span id="nom-eleve"></span><small id="classe-eleve"></small>
+      <button class="bouton discret" id="b-deconnexion" type="button">Se déconnecter</button></div>
+  </header>
+  <nav class="onglets" aria-label="Rubriques">
+    <a href="index.html" class="actif">Accueil</a>
+    <a href="exercices.html?p=algo">Algorigrammes</a>
+    <a href="exercices.html?p=blocs">Programmer un objet</a>
+    <a href="cours.html#algo">📖 Cours algorigrammes</a>
+    <a href="cours.html#blocs">📖 Cours programmation</a>
+    <a href="#evaluations">Évaluations</a>
+  </nav>
+  <main>
+    <div class="bonjour">
+      <h1 id="bonjour">Bonjour !</h1>
+      <p>Commence par les algorigrammes : ils décrivent le fonctionnement d'un objet avec un schéma. Ensuite, programme des objets techniques avec des blocs : lampe automatique, feu tricolore, portail, parking…</p>
+    </div>
+    <div class="cartes">
+      <section class="carte algo">
+        <div class="etape">Étape 1</div>
+        <h2><svg class="icone-carte" viewBox="0 0 40 40" aria-hidden="true"><rect x="10" y="2" width="20" height="8" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 10v5M20 27v5" stroke="currentColor" stroke-width="2"/><path d="M20 15l9 6-9 6-9-6z" fill="none" stroke="currentColor" stroke-width="2"/><rect x="11" y="32" width="18" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>Algorigrammes</h2>
+        <p>Lire, faire fonctionner et compléter des schémas. 5 notions, 20 exercices.</p>
+        <div class="progression" id="prog-algo"></div>
+        <div class="boutons"><a class="bouton plein" href="exercices.html?p=algo">Exercices</a><a class="bouton" href="cours.html#algo">📖 Cours</a></div>
+      </section>
+      <section class="carte">
+        <div class="etape">Étape 2</div>
+        <h2><svg class="icone-carte" viewBox="0 0 40 40" aria-hidden="true"><path d="M4 8h12l2 3h6l2-3h10v10H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 22h12l2 3h6l2-3h10v10H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Programmer un objet</h2>
+        <p>Des blocs comme dans Scratch pour commander capteurs et actionneurs. 6 notions, 24 exercices.</p>
+        <div class="progression" id="prog-blocs"></div>
+        <div class="boutons"><a class="bouton plein" href="exercices.html?p=blocs">Exercices</a><a class="bouton" href="cours.html#blocs">📖 Cours</a></div>
+      </section>
+      <section class="carte evals" id="evaluations">
+        <div class="etape">En classe</div>
+        <h2><svg class="icone-carte" viewBox="0 0 40 40" aria-hidden="true"><rect x="7" y="4" width="26" height="33" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13 14h14M13 21h14M13 28h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Évaluations</h2>
+        <p>Ton professeur ouvre l'évaluation en classe. Elle se fait seul, chacun son tour sur l'ordinateur.</p>
+        <div id="etat-eval"><span class="chargement">Vérification…</span></div>
+      </section>
+    </div>
+    <section class="bloc-cours">
+      <div><h2>📖 Les cours</h2><p>Toutes les leçons à relire, même sans faire d'exercice.</p></div>
+      <div class="boutons"><a class="bouton" href="cours.html#algo">Cours algorigrammes</a><a class="bouton" href="cours.html#blocs">Cours programmation</a></div>
+    </section>
+  </main>
+</div>
+
+<script src="config.js?v=20261015a"></script>
+<script src="session.js?v=20261015a"></script>
+<script src="blocs-moteur.js?v=20261015a"></script>
+<script src="algorigrammes.js?v=20261015a"></script>
+<script src="blocs.js?v=20261015a"></script>
+<script src="evaluations.js?v=20261015a"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const IDS_ALGO = PARCOURS_ALGO.flatMap(m => m.exercices.map(e => e.id));
+const IDS_BLOCS = PARCOURS_BLOCS.flatMap(m => m.exercices.map(e => e.id));
+
+function barres(zone, ids, membres) {
+  zone.innerHTML = "";
+  membres.forEach(m => {
+    const r = new Set(Session.progression(m.id).reussis), n = ids.filter(x => r.has(x)).length;
+    const d = document.createElement("div");
+    d.className = "ligne";
+    d.innerHTML = `<div class="piste"><div class="rempli" style="width:${100 * n / ids.length}%"></div></div><span></span>`;
+    d.querySelector("span").textContent = `${membres.length > 1 ? (m.prenom || m.id) + " : " : ""}${n} / ${ids.length} réussis`;
+    zone.appendChild(d);
+  });
+}
+function majProgression() { const ms = Session.membres(); barres($("prog-algo"), IDS_ALGO, ms); barres($("prog-blocs"), IDS_BLOCS, ms); }
+
+const FERMEE = `<strong><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>Pas encore disponible</strong><span>Aucune évaluation n'est ouverte pour ta classe en ce moment.</span>`;
+function etatEval(html, classe) { const d = document.createElement("div"); d.className = "etat-eval " + classe; d.innerHTML = html; $("etat-eval").replaceChildren(d); }
+async function verifierEval() {
+  const m = Session.membres()[0];
+  if (Session.DEMO || !m) { etatEval(FERMEE, "ferme"); return; }
+  try {
+    const d = await Session.appelGet({ action: "evalEtat", id: m.id, code: m.code });
+    const ouverte = d.ok && (d.ouverte || (d.eval && !d.eval.rendu && d.eval.id));
+    if (!ouverte) { etatEval(FERMEE, "ferme"); return; }
+    const meta = (window.EVALUATIONS || []).find(e => e.id === ouverte);
+    etatEval(`<strong></strong><span>${meta ? meta.duree + " min · " + meta.nb + " questions · " : ""}Attends le signal de ton professeur. Chacun la fait seul, avec son propre identifiant.</span><a class="bouton plein" href="eval.html">Aller à l'évaluation</a>`, "ouvert");
+    $("etat-eval").querySelector("strong").textContent = meta ? meta.titre : "Évaluation ouverte";
+  } catch { etatEval(`<strong>État inconnu</strong><span>Connexion impossible pour l'instant. Recharge la page.</span>`, "ferme"); }
+}
+
+function afficherAccueil() {
+  const ms = Session.membres();
+  $("ecran-connexion").hidden = true;
+  $("app").hidden = false;
+  $("nom-eleve").textContent = Session.noms();
+  $("classe-eleve").textContent = ms[0] && ms[0].classe ? " · " + ms[0].classe : "";
+  $("bonjour").textContent = `Bonjour ${Session.noms()} !`;
+  majProgression();
+  Session.resynchroniser().then(majProgression);
+  Session.envoyer();
+  verifierEval();
+}
+$("b-deconnexion").addEventListener("click", () => Session.quitter());
+
+/* ---------- Connexion (seul ou à deux) ---------- */
+$("etablissement").textContent = (window.CONFIG && CONFIG.etablissement) || "";
+$("bandeau-demo").hidden = !Session.DEMO;
+document.querySelectorAll(".champ.code").forEach(c => { c.hidden = Session.DEMO; });
+$("c-binome").addEventListener("change", () => {
+  const deux = $("c-binome").checked;
+  $("bloc-eleve2").hidden = !deux;
+  $("titre-eleve1").textContent = deux ? "Élève 1" : "Élève";
+  $("c-id2").required = deux;
+  if (deux) $("c-id2").focus();
+});
+const msg = Session.message();
+if (msg) { $("erreur-connexion").textContent = msg; $("erreur-connexion").hidden = false; }
+if (Session.session()) afficherAccueil();
+$("form-connexion").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const err = $("erreur-connexion");
+  err.hidden = true;
+  const demandes = [[$("c-id").value, $("c-code").value]];
+  if ($("c-binome").checked) demandes.push([$("c-id2").value, $("c-code2").value]);
+  if (demandes.some(([id]) => !id.trim())) return;
+  if (demandes.length === 2 && demandes[0][0].trim().toLowerCase() === demandes[1][0].trim().toLowerCase()) { err.textContent = "Les deux identifiants sont identiques."; err.hidden = false; return; }
+  $("b-connexion").disabled = true; $("b-connexion").textContent = "Connexion…";
+  try {
+    const res = await Promise.all(demandes.map(([id, code]) => Session.connecterUn(id, code)));
+    const faux = res.map((r, i) => r.ok ? null : (demandes.length > 1 ? `élève ${i + 1}` : "")).filter(x => x !== null);
+    if (faux.length) { err.textContent = `Identifiant ou code incorrect${faux[0] ? " (" + faux.join(", ") + ")" : ""}. Vérifie-les avec ton professeur.`; err.hidden = false; }
+    else { Session.ouvrir(res.map(r => r.eleve)); afficherAccueil(); }
+  } catch { err.textContent = "Connexion impossible. Vérifie que l'ordinateur a accès à Internet, puis réessaie."; err.hidden = false; }
+  $("b-connexion").disabled = false; $("b-connexion").textContent = "Se connecter";
+});
+window.addEventListener("pageshow", e => { if (e.persisted) location.reload(); });
+</script>
+</body>
+</html>
