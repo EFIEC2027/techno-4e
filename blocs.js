@@ -1,6 +1,11 @@
 /*
  * Parcours « Programmer un objet » — technologie 4e (programme de cycle 4, BO n° 9 du 29 février 2024).
- * 6 notions × 4 exercices. Les élèves programment des objets techniques avec des blocs (comme Scratch).
+ * Repères de 4e : « les élèves analysent les données, complètent et testent un programme pour modifier
+ * une fonctionnalité d'un objet » — variables et affectations, opérateurs arithmétiques et logiques,
+ * instructions conditionnelles et itératives, listes, événements, entrées/sorties (capteurs, IHM,
+ * actionneurs), programmation graphique par blocs ; « modifier un algorithme pour répondre à un besoin,
+ * puis le traduire en programme ».
+ * 8 notions × 4 exercices. Les élèves programment des objets techniques avec des blocs (comme Scratch).
  *
  * Chaque exercice :
  *   objet    : capteurs, actionneurs et variables de l'objet (voir blocs-moteur.js)
@@ -49,6 +54,15 @@
     serre: { capteurs: { temperature: { label: "température", type: "num", unite: "°C" }, humidite: { label: "humidité du sol", type: "num", unite: "%" } },
       actionneurs: { ventilateur: { label: "le ventilateur", type: "tor", on: "en marche", off: "arrêté" }, pompe: { label: "la pompe", type: "tor", on: "en marche", off: "à l'arrêt" }, ecran: { label: "l'écran", type: "ecran" } } }
   };
+  Object.assign(O, {
+    eclairageBouton: { capteurs: { bouton: { label: "bouton appuyé", type: "bool" } }, actionneurs: { lampe: LAMPE } },
+    deuxBoutons: { capteurs: { marche: { label: "bouton marche appuyé", type: "bool" }, arret: { label: "bouton arrêt appuyé", type: "bool" } }, actionneurs: { moteur: { label: "le moteur du tapis", type: "tor", on: "en marche", off: "arrêté" } } },
+    couloir: { capteurs: { presence: { label: "présence détectée", type: "bool" }, lumiere: { label: "luminosité", type: "num", unite: "%" } }, actionneurs: { lampe: LAMPE } },
+    couloir2: { capteurs: { presence: { label: "présence détectée", type: "bool" }, bouton: { label: "bouton appuyé", type: "bool" }, lumiere: { label: "luminosité", type: "num", unite: "%" } }, actionneurs: { lampe: LAMPE } },
+    meteo: { capteurs: { temperature: { label: "température", type: "num", unite: "°C" } }, actionneurs: { ecran: { label: "l'écran", type: "ecran" } }, listes: ["releves"] },
+    meteo2: { capteurs: { temperature: { label: "température", type: "num", unite: "°C" } }, actionneurs: { ecran: { label: "l'écran", type: "ecran" } }, variables: ["total", "i"], listes: ["releves"] },
+    thermoBouton: { capteurs: { bouton: { label: "bouton appuyé", type: "bool" }, temperature: { label: "température", type: "num", unite: "°C" } }, actionneurs: { ecran: { label: "l'écran", type: "ecran" } }, listes: ["releves"] }
+  });
   const sans = (o, ...cles) => { const c = JSON.parse(JSON.stringify(o)); cles.forEach(k => { delete c.capteurs[k]; }); return c; };
 
   /* ---------- Blocs disponibles, notion par notion ---------- */
@@ -56,8 +70,10 @@
   const B2 = [...B1, "repeter_fois", "repeter_toujours"];
   const B3 = [...B2, "si_alors", "si_sinon", "capteur", "op_compare"];
   const B4 = [...B3, "op_et", "op_ou", "op_non"];
-  const B5 = [...B4, "variables", "op_calcul", "repeter_jusqua"];
-  const B6 = B5;
+  const B5 = [...B4, "evenements"];
+  const B6 = [...B5, "variables", "op_calcul", "repeter_jusqua"];
+  const B7 = [...B6, "listes"];
+  const B8 = B7;
 
   const cyclePresence = { presence: [[0, false], [2, true], [5, false], [7, true], [8.5, false]] };
 
@@ -70,7 +86,7 @@
 <li>Les <strong>capteurs</strong> donnent des informations à la carte : présence, luminosité, température…</li>
 <li>Les <strong>actionneurs</strong> agissent : une lampe s'allume, un moteur tourne, un buzzer sonne.</li>
 </ul>
-<p>Le programme commence au bloc <strong>« quand le système démarre »</strong>. Les blocs sont exécutés <strong>dans l'ordre, de haut en bas</strong>. Chaque bloc est exécuté instantanément, sauf <strong>« attendre »</strong>, qui laisse passer du temps.</p>
+<p>Chaque bloc est une <strong>instruction</strong>. Le programme commence au bloc <strong>« quand le système démarre »</strong>, puis les instructions sont exécutées <strong>dans l'ordre, de haut en bas</strong> : c'est une <strong>séquence d'instructions</strong>. Chaque instruction est exécutée instantanément, sauf <strong>« attendre »</strong>, qui laisse passer du temps.</p>
 ${H([["allumer", "lampe"], ["attendre", 3], ["eteindre", "lampe"]], O.lampe)}
 <p>Ce programme allume la lampe, attend 3 secondes, puis l'éteint.</p>
 <p><strong>Le chronogramme</strong> montre ce qui se passe au cours du temps : une bande colorée signifie que l'actionneur est en marche. Après chaque vérification, les ✓ et ✗ indiquent les instants contrôlés.</p>`,
@@ -102,7 +118,7 @@ ${H([["allumer", "lampe"], ["attendre", 3], ["eteindre", "lampe"]], O.lampe)}
     {
       id: "b2", titre: "Répéter", notion: "boucles", blocs: B2,
       cours: `
-<p>Pour faire plusieurs fois la même chose, on utilise une <strong>boucle</strong> : les blocs placés <em>à l'intérieur</em> sont répétés.</p>
+<p>Pour faire plusieurs fois la même chose, on utilise une <strong>boucle</strong> (ou <strong>instruction itérative</strong>) : les instructions placées <em>à l'intérieur</em> sont répétées.</p>
 <ul>
 <li><strong>« répéter 3 fois »</strong> : répète un nombre de fois connu à l'avance, puis passe à la suite.</li>
 <li><strong>« répéter indéfiniment »</strong> : répète sans jamais s'arrêter. C'est le cas de la plupart des systèmes automatisés, qui fonctionnent en permanence. Rien ne peut être placé après ce bloc.</li>
@@ -147,11 +163,11 @@ ${H([["fois", 3, [["allumer", "led"], ["attendre", 1], ["eteindre", "led"], ["at
 <li>un capteur <strong>tout ou rien</strong> répond oui ou non (présence détectée ?, porte ouverte ?). Son bloc a une forme <strong>hexagonale</strong>, comme toutes les conditions ;</li>
 <li>un capteur de <strong>mesure</strong> donne une valeur (luminosité en %, température en °C). Son bloc est <strong>arrondi</strong>, comme les nombres. On le compare à un seuil avec <code>&lt;</code>, <code>&gt;</code> ou <code>=</code>.</li>
 </ul>
-<p>Le bloc <strong>« si … alors … sinon »</strong> choisit les actions selon la condition : si elle est vraie, on fait la partie « alors », sinon la partie « sinon ».</p>
+<p>Le bloc <strong>« si … alors … sinon »</strong> est une <strong>instruction conditionnelle</strong> : la <strong>condition</strong> (case hexagonale) est vraie ou fausse. Si elle est vraie, on exécute la partie « alors », sinon la partie « sinon ». On compare une mesure à un <strong>seuil</strong> avec un <strong>opérateur de comparaison</strong> (<code>&lt;</code>, <code>&gt;</code>, <code>=</code>).</p>
 ${H([["toujours", [["sisinon", ["cmp", ["capteur", "lumiere"], "<", 30], [["allumer", "lampe"]], [["eteindre", "lampe"]]]]]], O.crepuscule)}
 <p>Le « si » est placé dans <strong>« répéter indéfiniment »</strong> : le programme lit le capteur en permanence, et la lampe réagit dès que la luminosité change. Sans la boucle, le capteur ne serait lu qu'une seule fois, au démarrage.</p>
 <p>Le même programme sous forme d'algorigramme :</p>`,
-      schemaCours: [DEBUT, tantque("toujours", [si("luminosité < 30 ?", [act("allumer la lampe")], [act("éteindre la lampe")])])],
+      schemaCours: [DEBUT, tantque("toujours", [es("Lire luminosité"), si("luminosité < 30 ?", [act("Allumer la lampe")], [act("Éteindre la lampe")])])],
       exercices: [
         { id: "b3e1", titre: "La lampe à détection de présence", type: "blocs", objet: O.presence,
           enonce: "<p>La lampe d'un couloir doit être <strong>allumée quand une présence est détectée</strong>, et <strong>éteinte sinon</strong>.</p><p>Ce programme allume bien la lampe, mais elle ne s'éteint jamais. Corrige-le.</p>",
@@ -170,7 +186,8 @@ ${H([["toujours", [["sisinon", ["cmp", ["capteur", "lumiere"], "<", 30], [["allu
           exige: [{ bloc: "capteur_num", message: "La condition doit utiliser le capteur de luminosité." }],
           indices: ["Dans Opérateurs, prends le bloc « ( ) < ( ) » et glisse-le dans la case hexagonale du « si ».", "Dans la case de gauche, glisse le capteur « luminosité (%) » ; à droite, tape 30."] },
         { id: "b3e3", titre: "Le ventilateur automatique", type: "blocs", objet: O.ventil,
-          enonce: "<p>Le ventilateur d'une salle doit se mettre <strong>en marche quand la température dépasse 26 °C</strong>, et s'arrêter sinon. Écris tout le programme.</p>",
+          schema: [DEBUT, tantque("toujours", [es("Lire température"), si("température > 26 ?", [act("Mettre en marche le ventilateur")], [act("Arrêter le ventilateur")])])],
+          enonce: "<p>Traduis cet algorigramme en programme : le ventilateur d'une salle se met <strong>en marche quand la température dépasse 26 °C</strong>, et s'arrête sinon. Écris tout le programme.</p>",
           depart: [], solution: [["toujours", [["sisinon", ["cmp", ["capteur", "temperature"], ">", 26], [["allumer", "ventilateur"]], [["eteindre", "ventilateur"]]]]]],
           tests: [
             { nom: "Il fait de plus en plus chaud", duree: 10, capteurs: { temperature: [[0, 22], [3, 25], [5, 27], [7, 30]] }, verifs: [[1, { ventilateur: false }], [4, { ventilateur: false }], [5.5, { ventilateur: true }], [9, { ventilateur: true }]] },
@@ -189,7 +206,7 @@ ${H([["toujours", [["sisinon", ["cmp", ["capteur", "lumiere"], "<", 30], [["allu
     {
       id: "b4", titre: "Combiner des conditions", notion: "et, ou, non", blocs: B4,
       cours: `
-<p>On peut combiner des conditions avec les <strong>opérateurs logiques</strong> :</p>
+<p>On peut combiner des conditions avec les <strong>opérateurs logiques</strong> ET, OU, NON :</p>
 <table class="ops">
 <tr><td><strong>A et B</strong></td><td>vrai seulement si A et B sont <em>tous les deux</em> vrais</td></tr>
 <tr><td><strong>A ou B</strong></td><td>vrai si <em>au moins un</em> des deux est vrai</td></tr>
@@ -236,15 +253,61 @@ ${H([["toujours", [["sisinon", ["et", ["capteur", "presence"], ["cmp", ["capteur
       ]
     },
     {
-      id: "b5", titre: "Variables", notion: "compter et mémoriser", blocs: B5,
+      id: "bev", titre: "Événements", notion: "déclencher une action", blocs: B5,
       cours: `
-<p>Une <strong>variable</strong> est une case de la mémoire, avec un nom, qui contient une valeur. Le programme peut la modifier pendant qu'il fonctionne.</p>
+<p>Un <strong>événement</strong> déclenche une action dans le programme. Les blocs jaunes à chapeau sont des événements : <strong>« quand le système démarre »</strong> (au démarrage) et <strong>« quand bouton appuyé »</strong>, <strong>« quand présence détectée »</strong>… Les instructions accrochées dessous s'exécutent <strong>chaque fois que le capteur passe de « non » à « oui »</strong>.</p>
+<table class="ops">
+<tr><td><strong>Événement physique</strong></td><td>une action de l'utilisateur : appui sur un bouton.</td></tr>
+<tr><td><strong>Événement temporel</strong></td><td>un temps écoulé : « attendre 5 secondes » puis éteindre.</td></tr>
+<tr><td><strong>Événement logique</strong></td><td>une condition qui devient vraie : présence détectée, distance inférieure à 10 cm.</td></tr>
+</table>
+${H([["quand", "bouton", [["allumer", "lampe"], ["attendre", 5], ["eteindre", "lampe"]]]], O.eclairageBouton)}
+<p>Ce programme répond à un besoin simple : un appui sur le bouton allume la lampe, qui s'éteint au bout de 5 s. Un nouvel appui recommence le cycle. Un programme peut avoir plusieurs blocs « quand … », un par événement.</p>`,
+      exercices: [
+        { id: "bev1", titre: "Le bouton de l'éclairage", type: "blocs", objet: O.eclairageBouton,
+          enonce: "<p>Cahier des charges : <strong>un appui sur le bouton poussoir allume la lampe</strong>, qui <strong>s'éteint au bout de 5 secondes</strong>. Le cycle recommence à chaque appui.</p><p>Utilise l'événement « quand bouton appuyé » (catégorie <em>Événements</em>).</p>",
+          depart: [], solution: [["quand", "bouton", [["allumer", "lampe"], ["attendre", 5], ["eteindre", "lampe"]]]],
+          tests: [{ nom: "Deux appuis", duree: 16, capteurs: { bouton: [[0, false], [1, true], [1.3, false], [9, true], [9.3, false]] },
+            verifs: [[0.5, { lampe: false }], [1.5, { lampe: true }], [5.8, { lampe: true }], [6.5, { lampe: false }], [8.5, { lampe: false }], [9.5, { lampe: true }], [14.5, { lampe: false }]] }],
+          exige: [{ bloc: "quand_capteur", message: "Utilise l'événement « quand bouton appuyé »." }],
+          indices: ["Glisse « quand bouton appuyé » sur l'espace de travail, à côté de « quand le système démarre ».", "Accroche dessous : allumer la lampe, attendre 5 secondes, éteindre la lampe."] },
+        { id: "bev2", titre: "Marche / arrêt", type: "blocs", objet: O.deuxBoutons,
+          enonce: "<p>Un tapis roulant a deux boutons : <strong>un appui sur « marche » met le moteur en marche</strong>, <strong>un appui sur « arrêt » l'arrête</strong>.</p><p>Il faut un bloc « quand … » pour chaque bouton.</p>",
+          depart: [["quand", "marche", [["allumer", "moteur"]]]], solution: [["quand", "marche", [["allumer", "moteur"]]], ["quand", "arret", [["eteindre", "moteur"]]]],
+          tests: [{ nom: "Marche puis arrêt", duree: 12, capteurs: { marche: [[0, false], [1, true], [1.3, false], [8, true], [8.3, false]], arret: [[0, false], [5, true], [5.3, false]] },
+            verifs: [[0.5, { moteur: false }], [2, { moteur: true }], [4.5, { moteur: true }], [5.5, { moteur: false }], [7.5, { moteur: false }], [9, { moteur: true }]] }],
+          indices: ["Ajoute un deuxième bloc « quand … » et choisis « bouton arrêt appuyé » dans son menu.", "Accroche dessous : éteindre le moteur du tapis."] },
+        { id: "bev3", titre: "L'éclairage du couloir", type: "blocs", objet: O.couloir,
+          schema: [DEBUT, si("présence détectée ?", [si("luminosité < 30 ?", [act("Allumer la lampe"), act("Attendre 5 s"), act("Éteindre la lampe")], [])], []), FIN],
+          enonce: "<p>Traduis cet algorigramme en programme : <strong>quand une présence est détectée</strong>, si la <strong>luminosité est inférieure à 30 %</strong>, la lampe s'allume puis s'éteint au bout de <strong>5 s</strong>. En plein jour, rien ne se passe.</p>",
+          depart: [["quand", "presence", [["allumer", "lampe"], ["attendre", 5], ["eteindre", "lampe"]]]],
+          solution: [["quand", "presence", [["si", ["cmp", ["capteur", "lumiere"], "<", 30], [["allumer", "lampe"], ["attendre", 5], ["eteindre", "lampe"]]]]]],
+          tests: [
+            { nom: "La nuit", duree: 10, capteurs: { presence: [[0, false], [1, true], [2, false]], lumiere: [[0, 10]] }, verifs: [[0.5, { lampe: false }], [1.5, { lampe: true }], [5.8, { lampe: true }], [6.5, { lampe: false }]] },
+            { nom: "En plein jour", duree: 8, capteurs: { presence: [[0, false], [1, true], [2, false]], lumiere: [[0, 80]] }, verifs: [[1.5, { lampe: false }], [4, { lampe: false }]] }],
+          exige: [{ bloc: "si_alors", message: "Ajoute une instruction conditionnelle « si … alors » sur la luminosité." }],
+          indices: ["La lampe ne doit s'allumer que s'il fait sombre : il faut un « si » sous l'événement.", "Mets les trois blocs de la lampe dans un « si (luminosité < 30) alors »."] },
+        { id: "bev4", titre: "Modifier : bouton et détecteur", type: "blocs", objet: O.couloir2,
+          enonce: "<p>Nouvelle exigence : on ajoute un <strong>bouton poussoir</strong>. <strong>Un appui sur le bouton allume la lampe 5 s, quelle que soit la luminosité</strong>. Le détecteur de présence garde son fonctionnement (seulement quand il fait sombre).</p>",
+          depart: [["quand", "presence", [["si", ["cmp", ["capteur", "lumiere"], "<", 30], [["allumer", "lampe"], ["attendre", 5], ["eteindre", "lampe"]]]]]],
+          solution: [["quand", "presence", [["si", ["cmp", ["capteur", "lumiere"], "<", 30], [["allumer", "lampe"], ["attendre", 5], ["eteindre", "lampe"]]]]], ["quand", "bouton", [["allumer", "lampe"], ["attendre", 5], ["eteindre", "lampe"]]]],
+          tests: [
+            { nom: "Bouton en plein jour", duree: 10, capteurs: { bouton: [[0, false], [1, true], [1.3, false]], presence: [[0, false]], lumiere: [[0, 80]] }, verifs: [[0.5, { lampe: false }], [2, { lampe: true }], [5.8, { lampe: true }], [6.5, { lampe: false }]] },
+            { nom: "Passage la nuit", duree: 10, capteurs: { bouton: [[0, false]], presence: [[0, false], [1, true], [2, false]], lumiere: [[0, 10]] }, verifs: [[1.5, { lampe: true }], [6.5, { lampe: false }]] },
+            { nom: "Passage en plein jour", duree: 8, capteurs: { bouton: [[0, false]], presence: [[0, false], [1, true], [2, false]], lumiere: [[0, 80]] }, verifs: [[1.5, { lampe: false }]] }],
+          indices: ["Ajoute un deuxième événement : « quand bouton appuyé ».", "Dessous, pas de condition : allumer, attendre 5 secondes, éteindre."] }
+      ]
+    },
+    {
+      id: "b5", titre: "Variables", notion: "affecter, compter, mémoriser", blocs: B6,
+      cours: `
+<p>Une <strong>variable</strong> est une case de la mémoire, avec un nom, qui contient une valeur. Donner une valeur à une variable, c'est l'<strong>affecter</strong>. Le programme peut la modifier pendant qu'il fonctionne, avec des <strong>opérateurs arithmétiques</strong> (+, −, ×, ÷).</p>
 <ul>
 <li><strong>« mettre places à 5 »</strong> : la variable <code>places</code> vaut maintenant 5 ;</li>
 <li><strong>« ajouter 1 à compteur »</strong> : la valeur augmente de 1. Pour <em>enlever</em> 1, on ajoute <code>-1</code> ;</li>
 <li><strong>« afficher compteur sur l'écran »</strong> montre la valeur actuelle.</li>
 </ul>
-<p>Pour compter des passages, il faut compter <strong>une seule fois par personne</strong>. Quand une personne est détectée, on ajoute 1, puis on <strong>attend qu'elle soit partie</strong> avec « répéter jusqu'à ce que non personne détectée » (une boucle vide, qui attend).</p>
+<p>Pour compter des passages, il faut compter <strong>une seule fois par personne</strong>. Deux solutions : utiliser l'événement <strong>« quand personne détectée »</strong> (notion 5), ou, dans une boucle, <strong>attendre que la personne soit partie</strong> avec « répéter jusqu'à ce que non personne détectée » (une boucle vide, qui attend) :</p>
 ${H([["mettre", "compteur", 0], ["ecran", ["var", "compteur"]], ["toujours", [["si", ["capteur", "presence"], [["ajouter", "compteur", 1], ["ecran", ["var", "compteur"]], ["jusqua", ["non", ["capteur", "presence"]], []]]]]]], O.compteur)}`,
       exercices: [
         { id: "b5e1", titre: "Le minuteur", type: "blocs", objet: O.minuteur,
@@ -259,8 +322,8 @@ ${H([["mettre", "compteur", 0], ["ecran", ["var", "compteur"]], ["toujours", [["
           depart: [["mettre", "compteur", 0], ["ecran", ["var", "compteur"]], ["toujours", [["si", ["capteur", "presence"], [["ajouter", "compteur", 1], ["ecran", ["var", "compteur"]]]]]]],
           solution: [["mettre", "compteur", 0], ["ecran", ["var", "compteur"]], ["toujours", [["si", ["capteur", "presence"], [["ajouter", "compteur", 1], ["ecran", ["var", "compteur"]], ["jusqua", ["non", ["capteur", "presence"]], []]]]]]],
           tests: [{ nom: "Trois visiteurs", duree: 10, capteurs: { presence: [[0, false], [1, true], [2, false], [3, true], [4, false], [6, true], [7, false]] }, verifs: [[0.5, { ecran: "0" }], [1.5, { ecran: "1" }], [2.5, { ecran: "1" }], [3.5, { ecran: "2" }], [6.5, { ecran: "3" }], [9.5, { ecran: "3", $compteur: 3 }]] }],
-          exige: [{ bloc: "repeter_jusqua", message: "Utilise « répéter jusqu'à ce que » pour attendre que le visiteur soit passé." }],
-          indices: ["Après avoir affiché le compteur, il faut attendre que la personne ne soit plus détectée.", "Ajoute dans le « si » : répéter jusqu'à ce que (non personne détectée ?), avec rien à l'intérieur."] },
+          exige: [{ bloc: ["repeter_jusqua", "quand_capteur"], message: "Compte une seule fois par visiteur : attends qu'il soit passé (« répéter jusqu'à ce que ») ou utilise l'événement « quand personne détectée »." }],
+          indices: ["Après avoir affiché le compteur, il faut attendre que la personne ne soit plus détectée.", "Ajoute dans le « si » : répéter jusqu'à ce que (non personne détectée ?), avec rien à l'intérieur. Autre solution : un bloc « quand personne détectée » (Événements)."] },
         { id: "b5e3", titre: "Le parking", type: "blocs", objet: O.parking,
           enonce: "<p>Un parking a <strong>5 places</strong>. L'écran affiche le nombre de places libres. Le programme gère déjà les voitures qui <strong>entrent</strong> (une place de moins).</p><p>Ajoute la gestion des voitures qui <strong>sortent</strong> : une place libre de plus.</p>",
           depart: [["mettre", "places", 5], ["ecran", ["var", "places"]], ["toujours", [["si", ["capteur", "entree"], [["ajouter", "places", -1], ["ecran", ["var", "places"]], ["jusqua", ["non", ["capteur", "entree"]], []]]]]]],
@@ -286,7 +349,53 @@ ${H([["mettre", "compteur", 0], ["ecran", ["var", "compteur"]], ["toujours", [["
       ]
     },
     {
-      id: "b6", titre: "Projet : le portail et la serre", notion: "systèmes complets", blocs: B6,
+      id: "bli", titre: "Listes", notion: "enregistrer et analyser des données", blocs: B7,
+      cours: `
+<p>Un objet peut <strong>enregistrer des données</strong> pour les analyser ensuite. Une <strong>liste</strong> range plusieurs valeurs dans l'ordre, sous un seul nom.</p>
+<ul>
+<li><strong>« ajouter (température) à la liste releves »</strong> range une nouvelle valeur à la fin ;</li>
+<li><strong>« élément 2 de releves »</strong> donne la 2e valeur (on compte à partir de 1) ;</li>
+<li><strong>« longueur de releves »</strong> donne le nombre de valeurs rangées.</li>
+</ul>
+${H([["fois", 3, [["lajouter", "releves", ["capteur", "temperature"]], ["attendre", 2]]], ["ecran", ["llongueur", "releves"]]], O.meteo)}
+<p>Cette station météo relève la température 3 fois, toutes les 2 secondes, puis affiche le nombre de relevés (3). Le chronogramme montre le contenu de la liste au cours du temps.</p>`,
+      exercices: [
+        { id: "bli1", titre: "Enregistrer des relevés", type: "blocs", objet: O.meteo,
+          enonce: "<p>La station météo doit <strong>relever la température 4 fois, toutes les 2 secondes</strong>, et ranger chaque relevé dans la liste <code>releves</code>. Il manque l'instruction qui enregistre la mesure.</p>",
+          depart: [["fois", 4, [["attendre", 2]]]],
+          solution: [["fois", 4, [["lajouter", "releves", ["capteur", "temperature"]], ["attendre", 2]]]],
+          tests: [{ nom: "Une matinée", duree: 9, capteurs: { temperature: [[0, 18], [2, 21], [4, 25], [6, 19]] }, verifs: [[1, { "#releves": [18] }], [5, { "#releves": [18, 21, 25] }], [8.5, { "#releves": [18, 21, 25, 19] }]] }],
+          exige: [{ bloc: "liste_ajouter", message: "Utilise « ajouter … à la liste releves »." }],
+          indices: ["Dans Listes, prends « ajouter 0 à la liste releves ».", "Remplace le 0 par le capteur de température, et place le bloc dans la boucle, avant « attendre »."] },
+        { id: "bli2", titre: "Afficher un relevé", type: "blocs", objet: O.meteo,
+          enonce: "<p>Après les 3 relevés, l'écran doit afficher le <strong>2e relevé</strong> de la liste.</p>",
+          depart: [["fois", 3, [["lajouter", "releves", ["capteur", "temperature"]], ["attendre", 2]]]],
+          solution: [["fois", 3, [["lajouter", "releves", ["capteur", "temperature"]], ["attendre", 2]]], ["ecran", ["lelement", "releves", 2]]],
+          tests: [{ nom: "Trois relevés", duree: 8, capteurs: { temperature: [[0, 15], [2, 17], [4, 22]] }, verifs: [[6.5, { ecran: "17" }], [7.5, { "#releves": [15, 17, 22] }]] },
+                  { nom: "Autres relevés", duree: 8, capteurs: { temperature: [[0, 30], [2, 28], [4, 26]] }, verifs: [[6.5, { ecran: "28" }]] }],
+          exige: [{ bloc: "liste_element", message: "Utilise « élément … de releves »." }],
+          indices: ["Sous la boucle, ajoute « afficher … sur l'écran ».", "Dans la case, glisse « élément 2 de releves »."] },
+        { id: "bli3", titre: "La moyenne des relevés", type: "blocs", objet: O.meteo2,
+          enonce: "<p>On veut afficher la <strong>moyenne des 3 relevés</strong>. Le programme parcourt la liste avec la variable <code>i</code> (1, 2, 3) et additionne les valeurs dans <code>total</code>. Il manque l'instruction qui ajoute l'élément n° i à total.</p>",
+          depart: [["fois", 3, [["lajouter", "releves", ["capteur", "temperature"]], ["attendre", 2]]], ["mettre", "total", 0], ["mettre", "i", 1],
+            ["fois", ["llongueur", "releves"], [["ajouter", "i", 1]]], ["ecran", ["calc", ["var", "total"], "/", ["llongueur", "releves"]]]],
+          solution: [["fois", 3, [["lajouter", "releves", ["capteur", "temperature"]], ["attendre", 2]]], ["mettre", "total", 0], ["mettre", "i", 1],
+            ["fois", ["llongueur", "releves"], [["ajouter", "total", ["lelement", "releves", ["var", "i"]]], ["ajouter", "i", 1]]], ["ecran", ["calc", ["var", "total"], "/", ["llongueur", "releves"]]]],
+          tests: [{ nom: "18, 21 et 24 °C", duree: 8, capteurs: { temperature: [[0, 18], [2, 21], [4, 24]] }, verifs: [[7, { ecran: "21", $total: 63 }]] },
+                  { nom: "10, 20 et 30 °C", duree: 8, capteurs: { temperature: [[0, 10], [2, 20], [4, 30]] }, verifs: [[7, { ecran: "20" }]] }],
+          indices: ["Dans la 2e boucle, avant « ajouter 1 à i », ajoute « ajouter … à total ».", "Dans sa case, glisse « élément … de releves », avec la variable i comme numéro."] },
+        { id: "bli4", titre: "Mesurer à la demande", type: "blocs", objet: O.thermoBouton,
+          enonce: "<p>Un thermomètre connecté : <strong>à chaque appui sur le bouton</strong>, il range la température dans la liste <code>releves</code> et <strong>affiche le nombre de mesures</strong> enregistrées.</p>",
+          depart: [],
+          solution: [["quand", "bouton", [["lajouter", "releves", ["capteur", "temperature"]], ["ecran", ["llongueur", "releves"]]]]],
+          tests: [{ nom: "Trois appuis", duree: 10, capteurs: { bouton: [[0, false], [1, true], [1.3, false], [4, true], [4.3, false], [7, true], [7.3, false]], temperature: [[0, 20], [3, 22], [6, 19]] },
+            verifs: [[2, { ecran: "1", "#releves": [20] }], [5, { ecran: "2" }], [8, { ecran: "3", "#releves": [20, 22, 19] }]] }],
+          exige: [{ bloc: "quand_capteur", message: "Utilise l'événement « quand bouton appuyé »." }, { bloc: "liste_longueur", message: "Affiche « longueur de releves »." }],
+          indices: ["Événements : « quand bouton appuyé ».", "Dessous : ajouter (température) à la liste releves, puis afficher (longueur de releves) sur l'écran."] }
+      ]
+    },
+    {
+      id: "b6", titre: "Projet : le portail et la serre", notion: "modifier une fonctionnalité", blocs: B8,
       cours: `
 <p>Un vrai système combine tout ce que tu as appris. Exemple : un <strong>portail automatique</strong>.</p>
 <ul>
@@ -296,9 +405,10 @@ ${H([["mettre", "compteur", 0], ["ecran", ["var", "compteur"]], ["toujours", [["
 <p>Pour ouvrir le portail jusqu'au bout, on met le moteur en marche, puis on <strong>attend le capteur de fin de course</strong> avec « répéter jusqu'à ce que », et enfin on arrête le moteur :</p>
 ${H([["toujours", [["si", ["capteur", "telecommande"], [["moteur", "moteur", "ouvrir"], ["jusqua", ["capteur", "ouvert"], []], ["moteur", "moteur", "arret"]]]]]], O.portail)}
 <p>Pendant les tests, les capteurs suivent un scénario : par exemple, le capteur « portail ouvert » devient vrai 4 secondes après l'appui sur la télécommande.</p>`,
-      schemaCours: [DEBUT, tantque("toujours", [si("télécommande appuyée ?", [act("moteur : ouvrir"), tantque("portail ouvert ? non", [act("attendre")]), act("moteur : arrêter")], [])])],
+      schemaCours: [DEBUT, tantque("toujours", [si("télécommande appuyée ?", [act("Moteur : ouvrir"), tantque("portail pas encore ouvert ?", [act("Attendre")]), act("Moteur : arrêter")], [])])],
       exercices: [
         { id: "b6e1", titre: "Ouvrir le portail", type: "blocs", objet: sans(O.portail, "ferme", "obstacle"),
+          schema: [DEBUT, tantque("toujours", [si("télécommande appuyée ?", [act("Moteur : ouvrir"), tantque("portail pas encore ouvert ?", [act("Attendre")]), act("Moteur : arrêter")], [])])],
           enonce: "<p>Quand on appuie sur la télécommande, le moteur doit <strong>ouvrir</strong> le portail <strong>jusqu'à ce que</strong> le capteur « portail ouvert » le détecte, puis <strong>s'arrêter</strong>.</p><p>Ce programme arrête le moteur aussitôt : le portail ne s'ouvre pas. Complète-le.</p>",
           depart: [["toujours", [["si", ["capteur", "telecommande"], [["moteur", "moteur", "ouvrir"], ["moteur", "moteur", "arret"]]]]]],
           solution: [["toujours", [["si", ["capteur", "telecommande"], [["moteur", "moteur", "ouvrir"], ["jusqua", ["capteur", "ouvert"], []], ["moteur", "moteur", "arret"]]]]]],

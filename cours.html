@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=20261015a">
+<link rel="stylesheet" href="style.css?v=20261015b">
 <style>
 body { min-height: 100vh; }
 .barre .droite { margin-left: auto; }
@@ -36,11 +36,11 @@ main { max-width: 860px; margin: 0 auto; padding: 1.6rem 16px 5rem; display: gri
 <header class="barre">
   <div class="marque">Les cours <span>4e</span></div>
   <nav class="onglets-haut droite" aria-label="Navigation">
-    <a href="index.html">← Accueil</a><a href="exercices.html?p=algo">Exercices algorigrammes</a><a href="exercices.html?p=blocs">Exercices programmation</a>
+    <a href="index.html">← Accueil</a><a href="exercices.html?p=algo">Exercices algorithmes</a><a href="exercices.html?p=blocs">Exercices programmation</a>
   </nav>
 </header>
 <div class="onglets" role="tablist" aria-label="Cours">
-  <button id="o-algo" role="tab" aria-controls="panneau" type="button">📖 Cours algorigrammes</button>
+  <button id="o-algo" role="tab" aria-controls="panneau" type="button">📖 Cours algorithmes</button>
   <button id="o-blocs" role="tab" aria-controls="panneau" type="button">📖 Cours programmation</button>
 </div>
 <main id="panneau" role="tabpanel">
@@ -48,15 +48,15 @@ main { max-width: 860px; margin: 0 auto; padding: 1.6rem 16px 5rem; display: gri
   <nav class="sommaire" id="sommaire" aria-label="Sommaire"></nav>
   <div id="lecons" style="display:grid;gap:1rem"></div>
 </main>
-<script src="blocs-moteur.js?v=20261015a"></script>
-<script src="schema.js?v=20261015a"></script>
-<script src="algorigrammes.js?v=20261015a"></script>
-<script src="blocs.js?v=20261015a"></script>
+<script src="blocs-moteur.js?v=20261015b"></script>
+<script src="schema.js?v=20261015b"></script>
+<script src="algorigrammes.js?v=20261015b"></script>
+<script src="blocs.js?v=20261015b"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
 const COURS = {
-  algo: { donnees: window.PARCOURS_ALGO, titre: "Cours : algorigrammes", sous: "Un algorigramme décrit le fonctionnement d'un objet avec un schéma : c'est l'algorithme, avant de le programmer.", exos: "exercices.html?p=algo" },
+  algo: { donnees: window.PARCOURS_ALGO, titre: "Cours : algorithmes et chaîne d'information", sous: "La chaîne d'information d'un objet, puis ses algorithmes en langage naturel et en algorigramme, avant de les programmer.", exos: "exercices.html?p=algo" },
   blocs: { donnees: window.PARCOURS_BLOCS, titre: "Cours : programmer un objet", sous: "Programmer avec des blocs les capteurs et les actionneurs d'un objet technique.", exos: "exercices.html?p=blocs" }
 };
 function afficher(nom) {

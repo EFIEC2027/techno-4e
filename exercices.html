@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=20261015a">
+<link rel="stylesheet" href="style.css?v=20261015b">
 </head>
 <body>
 <div id="app">
@@ -66,12 +66,12 @@
 <script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/blocks_compressed.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/javascript_compressed.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/msg/fr.js"></script>
-<script src="config.js?v=20261015a"></script>
-<script src="session.js?v=20261015a"></script>
-<script src="blocs-moteur.js?v=20261015a"></script>
-<script src="schema.js?v=20261015a"></script>
-<script src="algorigrammes.js?v=20261015a"></script>
-<script src="blocs.js?v=20261015a"></script>
+<script src="config.js?v=20261015b"></script>
+<script src="session.js?v=20261015b"></script>
+<script src="blocs-moteur.js?v=20261015b"></script>
+<script src="schema.js?v=20261015b"></script>
+<script src="algorigrammes.js?v=20261015b"></script>
+<script src="blocs.js?v=20261015b"></script>
 <script>
 "use strict";
 if (!Session.exiger()) throw new Error("non connecté");
@@ -84,10 +84,10 @@ const S = { exo: null, indices: {}, activite: Date.now() };
 let W = Session.travail();
 
 /* ---------- En-tête ---------- */
-document.title = P === "algo" ? "Algorigrammes · 4e" : "Programmer un objet · 4e";
-$("marque").innerHTML = P === "algo" ? "Algorigrammes <span>4e</span>" : "Programmer <span>un objet</span>";
+document.title = P === "algo" ? "Algorithmes · 4e" : "Programmer un objet · 4e";
+$("marque").innerHTML = P === "algo" ? "Algorithmes <span>4e</span>" : "Programmer <span>un objet</span>";
 $("lien-cours").href = "cours.html#" + P;
-$("lien-cours").textContent = P === "algo" ? "📖 Cours algorigrammes" : "📖 Cours programmation";
+$("lien-cours").textContent = P === "algo" ? "📖 Cours algorithmes" : "📖 Cours programmation";
 $("nom-eleve").textContent = Session.noms();
 const classe = (Session.membres()[0] || {}).classe;
 $("classe-eleve").textContent = classe ? " · " + classe : "";

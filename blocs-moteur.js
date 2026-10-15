@@ -27,8 +27,8 @@
 })(typeof self !== "undefined" ? self : this, function (Blockly, JS) {
   "use strict";
 
-  const COUL = { evenement: "#FFBF00", controle: "#FFAB19", capteur: "#5CB1D6", action: "#9966FF", operateur: "#59C059", variable: "#FF8C1A" };
-  const VIDE = { capteurs: {}, actionneurs: {}, variables: [] };
+  const COUL = { evenement: "#FFBF00", controle: "#FFAB19", capteur: "#5CB1D6", action: "#9966FF", operateur: "#59C059", variable: "#FF8C1A", liste: "#FF661A" };
+  const VIDE = { capteurs: {}, actionneurs: {}, variables: [], listes: [] };
   let OBJET = VIDE;
   const fixerObjet = o => { OBJET = o || VIDE; };
 
@@ -59,6 +59,9 @@
     return v === "" ? "(rien)" : fmt(v);
   }
   function options(liste) { return liste.length ? liste : [["(aucun)", "_"]]; }
+  const optListes = () => options((OBJET.listes || []).map(l => [l, l]));
+  const optEvenements = () => options(Object.entries(OBJET.capteurs).filter(([, c]) => c.type === "bool").map(([k, c]) => [c.label, k]));
+  const fmtListe = l => Array.isArray(l) ? (l.length ? l.map(fmt).join(" ; ") : "(vide)") : fmt(l);
   const optCapteurs = type => () => options(Object.entries(OBJET.capteurs).filter(([, c]) => c.type === type).map(([k, c]) => [libCapteur(c), k]));
   const optTor = () => options(Object.entries(OBJET.actionneurs).filter(([, a]) => a.type === "tor").map(([k, a]) => [a.label, k]));
   const optMoteurs = () => options(Object.entries(OBJET.actionneurs).filter(([, a]) => a.type === "etats").map(([k, a]) => [a.label, k]));
@@ -76,6 +79,32 @@
       this.appendDummyInput().appendField("quand le système démarre");
       this.setNextStatement(true); this.setColour(COUL.evenement); this.hat = "cap";
       this.setTooltip("Le programme commence ici. Les blocs accrochés en dessous sont exécutés dans l'ordre.");
+    } };
+    B.quand_capteur = { init() {
+      this.appendDummyInput().appendField("quand").appendField(new Blockly.FieldDropdown(optEvenements), "NOM");
+      this.setNextStatement(true); this.setColour(COUL.evenement); this.hat = "cap";
+      this.setTooltip("Événement : les blocs en dessous s'exécutent chaque fois que ce capteur passe de « non » à « oui ».");
+    } };
+    B.liste_ajouter = { init() {
+      this.appendValueInput("VAL").setCheck(["Number", "String"]).appendField("ajouter");
+      this.appendDummyInput().appendField("à la liste").appendField(new Blockly.FieldDropdown(optListes), "LISTE");
+      this.setInputsInline(true); this.setPreviousStatement(true); this.setNextStatement(true); this.setColour(COUL.liste);
+      this.setTooltip("Range une valeur à la fin de la liste.");
+    } };
+    B.liste_vider = { init() {
+      this.appendDummyInput().appendField("vider la liste").appendField(new Blockly.FieldDropdown(optListes), "LISTE");
+      this.setPreviousStatement(true); this.setNextStatement(true); this.setColour(COUL.liste);
+    } };
+    B.liste_element = { init() {
+      this.appendValueInput("INDEX").setCheck(["Number", "String"]).appendField("élément");
+      this.appendDummyInput().appendField("de").appendField(new Blockly.FieldDropdown(optListes), "LISTE");
+      this.setInputsInline(true); this.setOutput(true, "Number"); this.setColour(COUL.liste);
+      this.setTooltip("La valeur rangée à cette position (1 = la première).");
+    } };
+    B.liste_longueur = { init() {
+      this.appendDummyInput().appendField("longueur de").appendField(new Blockly.FieldDropdown(optListes), "LISTE");
+      this.setOutput(true, "Number"); this.setColour(COUL.liste);
+      this.setTooltip("Le nombre de valeurs rangées dans la liste.");
     } };
     B.attendre = { init() {
       num(this, "DUREE").appendField("attendre");
@@ -218,6 +247,12 @@
     F.var_mettre = b => `api.mettre(${nomVar(b)}, ${val(b, "VAL", "0")});\n`;
     F.var_ajouter = b => `api.mettre(${nomVar(b)}, api.calcul(api.lire(${nomVar(b)}), "+", ${val(b, "VAL", "0")}));\n`;
     F.var_lire = b => [`api.lire(${nomVar(b)})`, O.FUNCTION_CALL];
+    F.quand_capteur = () => "";
+    const nomListe = b => JSON.stringify(b.getFieldValue("LISTE"));
+    F.liste_ajouter = b => `api.lajouter(${nomListe(b)}, ${val(b, "VAL", "0")});\n`;
+    F.liste_vider = b => `api.lvider(${nomListe(b)});\n`;
+    F.liste_element = b => [`api.lelement(${nomListe(b)}, ${val(b, "INDEX", "1")})`, O.FUNCTION_CALL];
+    F.liste_longueur = b => [`api.llongueur(${nomListe(b)})`, O.FUNCTION_CALL];
   }
 
   /** Analyse l'espace de travail : code à exécuter, blocs utilisés, problèmes de construction. */
@@ -225,24 +260,29 @@
     const G = JS.javascriptGenerator;
     const hauts = ws.getTopBlocks(true);
     const departs = hauts.filter(b => b.type === "quand_demarre");
+    const evenements = hauts.filter(b => b.type === "quand_capteur");
     const problemes = [];
     if (!departs.length) return { code: "", types: new Set(), problemes: ["Il manque le bloc « quand le système démarre » : ton programme doit commencer par lui."], isoles: 0 };
     if (departs.length > 1) problemes.push("Il y a plusieurs blocs « quand le système démarre ». Garde-en un seul.");
     const depart = departs[0];
-    const isoles = hauts.filter(b => b !== depart && !b.isShadow()).length;
+    const isoles = hauts.filter(b => b !== depart && b.type !== "quand_capteur" && !b.isShadow()).length;
     const types = new Set();
-    depart.getDescendants(false).forEach(b => {
+    [depart, ...evenements].forEach(h => h.getDescendants(false).forEach(b => {
       types.add(b.type);
       if (["si_alors", "si_sinon", "repeter_jusqua"].includes(b.type) && !b.getInputTargetBlock("COND"))
         problemes.push(`Le bloc « ${b.type === "repeter_jusqua" ? "répéter jusqu'à ce que" : "si"} » n'a pas de condition : glisse un capteur ou une comparaison dans la case hexagonale.`);
       if (["op_et", "op_ou"].includes(b.type) && (!b.getInputTargetBlock("A") || !b.getInputTargetBlock("B")))
         problemes.push(`Le bloc « ${b.type === "op_et" ? "et" : "ou"} » a une case vide : il faut une condition de chaque côté.`);
       if (b.type === "op_non" && !b.getInputTargetBlock("A")) problemes.push("Le bloc « non » est vide : mets une condition dedans.");
-    });
+    }));
+    if (evenements.length && depart.getDescendants(false).some(b => b.type === "repeter_toujours"))
+      problemes.push("Avec des blocs « quand … », n'utilise pas « répéter indéfiniment » sous « quand le système démarre » : le système ne pourrait jamais réagir aux événements.");
     compteurBoucles = 0;
     G.init(ws);
-    const code = G.blockToCode(depart);
-    return { code: typeof code === "string" ? code : "", types, problemes: [...new Set(problemes)], isoles };
+    const corps = h => { const c = G.blockToCode(h); return typeof c === "string" ? c : ""; };
+    let code = `api.demarrer(function () {\n${corps(depart)}});\n`;
+    evenements.forEach(h => { code += `api.quand(${JSON.stringify(h.getFieldValue("NOM"))}, function () {\n${corps(h)}});\n`; });
+    return { code, types, problemes: [...new Set(problemes)], isoles };
   }
 
   /* ---------- Simulation ---------- */
@@ -255,7 +295,10 @@
     const etats = {};
     Object.keys(o.actionneurs).forEach(k => { etats[k] = initial(k, o); });
     (o.variables || []).forEach(k => { etats["$" + k] = 0; });
+    (o.listes || []).forEach(k => { etats["#" + k] = []; });
     const journal = [];
+    let demarrage = null;
+    const gestionnaires = [];
     const capteur = nom => {
       const c = o.capteurs[nom];
       let v = c && c.type === "num" ? 0 : false;
@@ -265,7 +308,7 @@
     const changer = (nom, v) => {
       if (--budget < 0) throw TROP;
       if (!(nom in etats)) return;
-      if (etats[nom] !== v) { etats[nom] = v; journal.push({ t: arrondi(t), nom, val: v }); }
+      if (Array.isArray(v) || etats[nom] !== v) { etats[nom] = v; journal.push({ t: arrondi(t), nom, val: Array.isArray(v) ? v.slice() : v }); }
     };
     const nombre = x => { const n = typeof x === "number" ? x : parseFloat(String(x).replace(",", ".")); return isNaN(n) ? 0 : n; };
     const api = {
@@ -292,10 +335,33 @@
         return Math.round(r * 1e9) / 1e9;
       },
       mettre: (k, v) => changer("$" + k, typeof v === "number" ? v : nombre(v)),
-      lire: k => etats["$" + k] === undefined ? 0 : etats["$" + k]
+      lire: k => etats["$" + k] === undefined ? 0 : etats["$" + k],
+      lajouter: (k, v) => { if (!(("#" + k) in etats)) return; changer("#" + k, [...etats["#" + k], typeof v === "number" ? v : nombre(v)]); },
+      lvider: k => { if (("#" + k) in etats) changer("#" + k, []); },
+      lelement: (k, i) => { const l = etats["#" + k] || []; const v = l[Math.round(nombre(i)) - 1]; return v === undefined ? 0 : v; },
+      llongueur: k => (etats["#" + k] || []).length,
+      demarrer: f => { demarrage = f; },
+      quand: (nom, f) => { gestionnaires.push({ nom, f }); }
     };
     let erreur = null;
-    try { new Function("api", code)(api); }
+    try {
+      new Function("api", code)(api);
+      if (demarrage) demarrage();
+      // Événements : chaque bloc « quand … » s'exécute quand son capteur passe de non à oui.
+      if (gestionnaires.length) {
+        const avant = gestionnaires.map(g => api.vrai(capteur(g.nom)));
+        while (true) {
+          t = arrondi(t + 0.1);
+          if (t > duree) throw FIN;
+          if (--budget < 0) throw TROP;
+          gestionnaires.forEach((g, i) => {
+            const maintenant = api.vrai(capteur(g.nom));
+            if (maintenant && !avant[i]) g.f();
+            avant[i] = api.vrai(capteur(g.nom));
+          });
+        }
+      }
+    }
     catch (e) {
       if (e === FIN) { /* durée du scénario atteinte */ }
       else if (e === TROP) erreur = "boucle";
@@ -309,6 +375,7 @@
     const o = objet || VIDE, e = {};
     Object.keys(o.actionneurs).forEach(k => { e[k] = initial(k, o); });
     (o.variables || []).forEach(k => { e["$" + k] = 0; });
+    (o.listes || []).forEach(k => { e["#" + k] = []; });
     res.journal.forEach(j => { if (j.t <= t + 1e-9) e[j.nom] = j.val; });
     return e;
   }
@@ -321,8 +388,11 @@
     });
     return e;
   }
-  const libelle = (nom, o) => nom.startsWith("$") ? "la variable " + nom.slice(1) : (o.actionneurs[nom] || {}).label || nom;
-  function egal(a, b) { return typeof a === "string" || typeof b === "string" ? String(a).trim().toLowerCase() === String(b).trim().toLowerCase() : a === b; }
+  const libelle = (nom, o) => nom.startsWith("$") ? "la variable " + nom.slice(1) : nom.startsWith("#") ? "la liste " + nom.slice(1) : (o.actionneurs[nom] || {}).label || nom;
+  function egal(a, b) {
+    if (Array.isArray(a) || Array.isArray(b)) return JSON.stringify(a) === JSON.stringify(b);
+    return typeof a === "string" || typeof b === "string" ? String(a).trim().toLowerCase() === String(b).trim().toLowerCase() : a === b;
+  }
   function cleVerif(k) { return k.startsWith("$") || k.startsWith("var:") ? "$" + k.replace(/^(\$|var:)/, "") : k; }
 
   /** Vérifie un résultat d'exécution contre les points de contrôle d'un test. */
@@ -343,7 +413,8 @@
   function messageEcart(t, k, attendu, obtenu, test, o) {
     const qui = libelle(k, o), a = o.actionneurs[k];
     let phrase;
-    if (k.startsWith("$")) phrase = `${qui} devrait valoir ${fmt(attendu)}, mais elle vaut ${fmt(obtenu)}`;
+    if (k.startsWith("#")) phrase = `${qui} devrait contenir ${fmtListe(attendu)}, mais elle contient ${fmtListe(obtenu)}`;
+    else if (k.startsWith("$")) phrase = `${qui} devrait valoir ${fmt(attendu)}, mais elle vaut ${fmt(obtenu)}`;
     else if (a && a.type === "ecran") phrase = `${qui} devrait afficher « ${attendu} », mais il affiche ${obtenu === "" ? "rien" : "« " + obtenu + " »"}`;
     else if (a && a.type === "etats") phrase = `${qui} : on attendait « ${texteEtat(k, attendu, o)} », mais il est « ${texteEtat(k, obtenu, o)} »`;
     else phrase = `${qui} devrait être ${texteEtat(k, attendu, o)}, mais ${a && (a.genre === "f" || /^la /i.test(a.label)) ? "elle" : "il"} est ${texteEtat(k, obtenu, o)}`;
@@ -391,6 +462,8 @@
       if (t === "non") return { type: "op_non", inputs: entrees({ A: valeur(a[0]) }) };
       if (t === "calc") return { type: "op_calcul", fields: { OP: a[1] }, inputs: entrees({ A: valeur(a[0], "nombre"), B: valeur(a[2], "nombre") }) };
       if (t === "var") return { type: "var_lire", fields: { VAR: { id: idVar(a[0]) } } };
+      if (t === "lelement") return { type: "liste_element", fields: { LISTE: a[0] }, inputs: entrees({ INDEX: valeur(a[1], "nombre") }) };
+      if (t === "llongueur") return { type: "liste_longueur", fields: { LISTE: a[0] } };
       throw new Error("expression inconnue : " + t);
     }
     function instr(s) {
@@ -408,6 +481,8 @@
         case "ecran": return { type: "ecran", inputs: entrees({ VAL: valeur(a[0], "texte") }) };
         case "mettre": return { type: "var_mettre", fields: { VAR: { id: idVar(a[0]) } }, inputs: entrees({ VAL: valeur(a[1], "nombre") }) };
         case "ajouter": return { type: "var_ajouter", fields: { VAR: { id: idVar(a[0]) } }, inputs: entrees({ VAL: valeur(a[1], "nombre") }) };
+        case "lajouter": return { type: "liste_ajouter", fields: { LISTE: a[0] }, inputs: entrees({ VAL: valeur(a[1], "nombre") }) };
+        case "lvider": return { type: "liste_vider", fields: { LISTE: a[0] } };
         default: throw new Error("instruction inconnue : " + t);
       }
     }
@@ -417,10 +492,13 @@
       for (let i = blocs.length - 2; i >= 0; i--) blocs[i].next = { block: blocs[i + 1] };
       return { block: blocs[0] };
     }
+    const principal = (prog || []).filter(x => x[0] !== "quand"), evts = (prog || []).filter(x => x[0] === "quand");
     const tete = { type: "quand_demarre", x: 30, y: 30, deletable: false };
-    const s = suite(prog);
+    const s = suite(principal);
     if (s) tete.next = s;
-    const etat = { blocks: { languageVersion: 0, blocks: [tete] } };
+    const hauts = [tete];
+    evts.forEach((ev, i) => { const h = { type: "quand_capteur", x: 30 + 330 * (i + 1), y: 30, fields: { NOM: ev[1] } }; const c = suite(ev[2]); if (c) h.next = c; hauts.push(h); });
+    const etat = { blocks: { languageVersion: 0, blocks: hauts } };
     etat.variables = [...vars.entries()].map(([name, id]) => ({ name, id }));
     return etat;
   }
@@ -440,6 +518,8 @@
       if (t === "non") return `<span class="bk-hexa bk-op">non ${e(a[0])}</span>`;
       if (t === "calc") return `<span class="bk-ovale bk-op">${e(a[0])} ${esc({ "*": "×", "/": "÷", "-": "−" }[a[1]] || a[1])} ${e(a[2])}</span>`;
       if (t === "var") return ov(a[0], "bk-var");
+      if (t === "lelement") return `<span class="bk-ovale bk-liste">élément ${e(a[1])} de ${ov(a[0], "bk-menu")}</span>`;
+      if (t === "llongueur") return `<span class="bk-ovale bk-liste">longueur de ${ov(a[0], "bk-menu")}</span>`;
       return "?";
     }
     const pile = l => (l || []).map(s).join("") || `<div class="bk-vide"></div>`;
@@ -460,11 +540,18 @@
         case "ecran": return ligne("bk-action", `afficher ${e(a[0])} sur l'écran`);
         case "mettre": return ligne("bk-variable", `mettre ${ov(a[0], "bk-menu")} à ${e(a[1])}`);
         case "ajouter": return ligne("bk-variable", `ajouter ${e(a[1])} à ${ov(a[0], "bk-menu")}`);
+        case "lajouter": return ligne("bk-liste", `ajouter ${e(a[1])} à la liste ${ov(a[0], "bk-menu")}`);
+        case "lvider": return ligne("bk-liste", `vider la liste ${ov(a[0], "bk-menu")}`);
         default: return "";
       }
     }
-    const corps = (prog || []).map(s).join("");
-    return `<div class="bk-prog">${avecTete ? '<div class="bk bk-evenement bk-chapeau"><div class="bk-ligne">quand le système démarre</div></div>' : ""}${corps}</div>`;
+    const principal = (prog || []).filter(x => x[0] !== "quand"), evts = (prog || []).filter(x => x[0] === "quand");
+    const chapeau = txt => `<div class="bk bk-evenement bk-chapeau"><div class="bk-ligne">${txt}</div></div>`;
+    let html = "";
+    if (avecTete && (principal.length || !evts.length)) html += `<div class="bk-prog">${chapeau("quand le système démarre")}${principal.map(s).join("")}</div>`;
+    else if (!avecTete) html += `<div class="bk-prog">${principal.map(s).join("")}</div>`;
+    evts.forEach(ev => { const c = o.capteurs[ev[1]] || { label: ev[1] }; html += `<div class="bk-prog">${chapeau("quand " + ov(c.label, "bk-menu"))}${(ev[2] || []).map(s).join("")}</div>`; });
+    return evts.length ? `<div class="bk-scripts">${html}</div>` : html;
   }
 
   /* ---------- Blocs → texte lisible (enregistré pour le professeur) ---------- */
@@ -482,6 +569,8 @@
         case "op_non": return `<non ${v(b, "A")}>`;
         case "op_calcul": return `(${v(b, "A")} ${{ "*": "×", "/": "÷", "-": "−" }[b.getFieldValue("OP")] || "+"} ${v(b, "B")})`;
         case "var_lire": return `(${b.getField("VAR").getText()})`;
+        case "liste_element": return `(élément ${v(b, "INDEX")} de ${b.getFieldValue("LISTE")})`;
+        case "liste_longueur": return `(longueur de ${b.getFieldValue("LISTE")})`;
         default: return "?";
       }
     }
@@ -503,12 +592,16 @@
         case "ecran": return `${ind}afficher ${v(b, "VAL")} sur l'écran\n`;
         case "var_mettre": return `${ind}mettre ${b.getField("VAR").getText()} à ${v(b, "VAL")}\n`;
         case "var_ajouter": return `${ind}ajouter ${v(b, "VAL")} à ${b.getField("VAR").getText()}\n`;
+        case "liste_ajouter": return `${ind}ajouter ${v(b, "VAL")} à la liste ${b.getFieldValue("LISTE")}\n`;
+        case "liste_vider": return `${ind}vider la liste ${b.getFieldValue("LISTE")}\n`;
+        case "quand_capteur": { const c = OBJET.capteurs[b.getFieldValue("NOM")]; return `${ind}quand ${c ? c.label : b.getFieldValue("NOM")}\n`; }
         default: return `${ind}${exprT(b)}\n`;
       }
     }
     const tete = hauts.find(b => b.type === "quand_demarre");
     let s = tete ? pileT(tete, "") : "";
-    hauts.filter(b => b !== tete && !b.isShadow()).forEach(b => { s += "\n(bloc non accroché)\n" + (b.outputConnection ? exprT(b) + "\n" : pileT(b, "")); });
+    hauts.filter(b => b.type === "quand_capteur").forEach(b => { s += "\n" + pileT(b, ""); });
+    hauts.filter(b => b !== tete && b.type !== "quand_capteur" && !b.isShadow()).forEach(b => { s += "\n(bloc non accroché)\n" + (b.outputConnection ? exprT(b) + "\n" : pileT(b, "")); });
     return s.trim();
   }
 
@@ -537,9 +630,15 @@
     if (permis.has("variables")) (o.variables || []).forEach(v => {
       vars.push(blk("var_lire", { fields: { VAR: { name: v } } }), blk("var_mettre", { fields: { VAR: { name: v } }, inputs: { VAL: n(0) } }), blk("var_ajouter", { fields: { VAR: { name: v } }, inputs: { VAL: n(1) } }));
     });
+    const evts = permis.has("evenements") ? Object.entries(o.capteurs).filter(([, c]) => c.type === "bool").map(([k]) => blk("quand_capteur", { fields: { NOM: k } })) : [];
+    const listes = [];
+    if (permis.has("listes")) (o.listes || []).forEach(l => {
+      listes.push(blk("liste_ajouter", { fields: { LISTE: l }, inputs: { VAL: n(0) } }), blk("liste_vider", { fields: { LISTE: l } }),
+        blk("liste_element", { fields: { LISTE: l }, inputs: { INDEX: n(1) } }), blk("liste_longueur", { fields: { LISTE: l } }));
+    });
     return { kind: "categoryToolbox", contents: [
-      ...cat("Contrôle", COUL.controle, controle), ...cat("Capteurs", COUL.capteur, capteurs), ...cat("Actionneurs", COUL.action, actions),
-      ...cat("Opérateurs", COUL.operateur, ops), ...cat("Variables", COUL.variable, vars)] };
+      ...cat("Événements", COUL.evenement, evts), ...cat("Contrôle", COUL.controle, controle), ...cat("Capteurs", COUL.capteur, capteurs), ...cat("Actionneurs", COUL.action, actions),
+      ...cat("Opérateurs", COUL.operateur, ops), ...cat("Variables", COUL.variable, vars), ...cat("Listes", COUL.liste, listes)] };
   }
 
   /* ---------- Chronogramme (SVG) ---------- */
@@ -550,6 +649,7 @@
     Object.entries(o.capteurs).forEach(([k, c]) => { if (test.capteurs && test.capteurs[k]) lignes.push({ k, label: c.label + (c.unite ? ` (${c.unite})` : ""), genre: c.type === "num" ? "valeur" : "bool", capteur: true }); });
     Object.entries(o.actionneurs).forEach(([k, a]) => lignes.push({ k, label: court(a.label), genre: a.type === "tor" ? "bool" : "valeur" }));
     (o.variables || []).forEach(v => lignes.push({ k: "$" + v, label: "variable " + v, genre: "valeur" }));
+    (o.listes || []).forEach(v => lignes.push({ k: "#" + v, label: "liste " + v, genre: "valeur" }));
     const hauteur = HAUT + lignes.length * (H + ESP) + 6;
     const X = t => L + (Math.min(t, duree) / duree) * (W - L - R);
     const pas = duree <= 12 ? 1 : duree <= 30 ? 2 : duree <= 60 ? 5 : 10;
@@ -568,7 +668,7 @@
     };
     const segmentsSortie = k => {
       const seg = []; let debut = 0;
-      let v = k.startsWith("$") ? 0 : initial(k, o);
+      let v = k.startsWith("$") ? 0 : k.startsWith("#") ? [] : initial(k, o);
       res.journal.filter(j => j.nom === k).forEach(j => { if (j.t > debut) seg.push([debut, j.t, v]); debut = j.t; v = j.val; });
       seg.push([debut, duree, v]);
       return seg;
@@ -584,8 +684,8 @@
         if (l.genre === "bool") {
           if (v === true) s += `<rect x="${x1}" y="${y + 4}" width="${Math.max(1, x2 - x1)}" height="${H - 6}" rx="3" class="${l.capteur ? "ch-haut-capteur" : "ch-haut"}"><title>${esc(l.label)} : ${l.capteur ? "oui" : texteEtat(l.k, true, o)} (de ${fmt(a)} à ${fmt(b)} s)</title></rect>`;
         } else {
-          const txt = l.capteur ? fmt(v) : l.k.startsWith("$") ? fmt(v) : texteEtat(l.k, v, o);
-          const vide = v === "" || (o.actionneurs[l.k] && o.actionneurs[l.k].type === "etats" && v === etatsMoteur(o.actionneurs[l.k])[0][0]);
+          const txt = l.capteur ? fmt(v) : l.k.startsWith("$") ? fmt(v) : l.k.startsWith("#") ? fmtListe(v) : texteEtat(l.k, v, o);
+          const vide = v === "" || (Array.isArray(v) && !v.length) || (o.actionneurs[l.k] && o.actionneurs[l.k].type === "etats" && v === etatsMoteur(o.actionneurs[l.k])[0][0]);
           s += `<rect x="${x1 + 1}" y="${y + 4}" width="${Math.max(1, x2 - x1 - 2)}" height="${H - 6}" rx="3" class="${vide ? "ch-valeur-vide" : l.capteur ? "ch-valeur-capteur" : "ch-valeur"}"><title>${esc(l.label)} : ${esc(txt)} (de ${fmt(a)} à ${fmt(b)} s)</title></rect>`;
           if (x2 - x1 > 8 * Math.min(String(txt).length, 14) + 6) s += `<text x="${(x1 + x2) / 2}" y="${y + H / 2 + 1}" class="ch-val">${esc(String(txt).slice(0, 14))}</text>`;
         }
@@ -601,5 +701,5 @@
     return s + "</svg>";
   }
 
-  return { COUL, fixerObjet, compiler, executer, etatsA, capteursA, controler, verifierTests, regles, depuisAbrege, enHTML, enTexte, boiteOutils, chronogramme, texteEtat, libCapteur, fmt, court, etatsMoteur };
+  return { fmtListe, COUL, fixerObjet, compiler, executer, etatsA, capteursA, controler, verifierTests, regles, depuisAbrege, enHTML, enTexte, boiteOutils, chronogramme, texteEtat, libCapteur, fmt, court, etatsMoteur };
 });

@@ -253,3 +253,6 @@ table.trace th { background: var(--fond); font-size: .85rem; }
 
 a.bouton { color: var(--encre); text-decoration: none; }
 a.bouton.plein { color: #fff; }
+.bk-liste { --c: #FF661A; }
+.bk-ovale.bk-liste { background: #FF661A; color: #fff; border: 1px solid rgba(0,0,0,.12); }
+.bk-scripts { display: flex; flex-wrap: wrap; gap: 1.2rem 2rem; align-items: flex-start; }

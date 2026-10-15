@@ -173,6 +173,9 @@ pre.programme { font-size: 1rem; line-height: 1.6; }
 .bk-hexa .bk-hexa { background: rgba(0,0,0,.12); }
 .bk-trou { display: inline-block; width: 2.6rem; height: 1.3rem; background: rgba(0,0,0,.2); clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%); }
 
+.bk-liste { --c: #FF661A; }
+.bk-ovale.bk-liste { background: #FF661A; color: #fff; }
+.bk-scripts { display: flex; flex-wrap: wrap; gap: 1.2rem 2rem; align-items: flex-start; }
 .bk-zone { margin: .6rem 0; padding: .8rem; background: var(--fond); border-radius: 10px; overflow-x: auto; }
 </style>
 </head>
@@ -308,11 +311,11 @@ pre.programme { font-size: 1rem; line-height: 1.6; }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
-<script src="config.js?v=20261015a"></script>
-<script src="blocs-moteur.js?v=20261015a"></script>
-<script src="evaluations.js?v=20261015a"></script>
-<script src="verif.js?v=20261015a"></script>
-<script src="schema.js?v=20261015a"></script>
+<script src="config.js?v=20261015b"></script>
+<script src="blocs-moteur.js?v=20261015b"></script>
+<script src="evaluations.js?v=20261015b"></script>
+<script src="verif.js?v=20261015b"></script>
+<script src="schema.js?v=20261015b"></script>
 <script>
 "use strict";
 const URL_SERVEUR = (window.CONFIG && CONFIG.url || "").trim();
@@ -416,7 +419,7 @@ class Python {
   constructor() { this.attente = new Map(); this.n = 0; this.demarrer(); }
   demarrer() {
     this.pret = new Promise((ok, ko) => { this._ok = ok; this._ko = ko; });
-    this.w = new Worker("worker.js?v=20261015a");
+    this.w = new Worker("worker.js?v=20261015b");
     this.w.onmessage = e => {
       const d = e.data;
       if (d.type === "pret") this._ok();

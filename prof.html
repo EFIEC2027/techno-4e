@@ -174,7 +174,7 @@ select#choix-eleve { border: 1.5px solid var(--trait); border-radius: 8px; paddi
     <div class="barre-haut">
       <h1>Suivi <span>Techno 4e</span></h1>
       <div class="filtres" id="choix-parcours" role="group" aria-label="Parcours">
-        <button type="button" class="puce" data-parcours="algo" aria-pressed="false">Algorigrammes</button>
+        <button type="button" class="puce" data-parcours="algo" aria-pressed="false">Algorithmes</button>
         <button type="button" class="puce" data-parcours="blocs" aria-pressed="false">Programmer un objet</button>
       </div>
       <div class="filtres" id="filtres" role="group" aria-label="Classe"></div>
@@ -313,19 +313,19 @@ select#choix-eleve { border: 1.5px solid var(--trait); border-radius: 8px; paddi
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="config.js?v=20261015a"></script>
-<script src="evaluations.js?v=20261015a"></script>
+<script src="config.js?v=20261015b"></script>
+<script src="evaluations.js?v=20261015b"></script>
 <script>window.PARCOURS_PYTHON = window.PARCOURS;</script>
-<script src="algorigrammes.js?v=20261015a"></script>
-<script src="blocs-moteur.js?v=20261015a"></script>
-<script src="blocs.js?v=20261015a"></script>
+<script src="algorigrammes.js?v=20261015b"></script>
+<script src="blocs-moteur.js?v=20261015b"></script>
+<script src="blocs.js?v=20261015b"></script>
 <script>
 "use strict";
 const URL_SERVEUR = (window.CONFIG && CONFIG.url || "").trim();
 const DEMO = !URL_SERVEUR;
 const $ = id => document.getElementById(id);
 /* Deux parcours suivis : Programmer un objet (blocs.js) et Algorigrammes (algorigrammes.js). */
-const LES_PARCOURS = { blocs: { nom: "Programmer un objet", liste: window.PARCOURS_BLOCS || [] }, algo: { nom: "Algorigrammes", liste: window.PARCOURS_ALGO || [] } };
+const LES_PARCOURS = { blocs: { nom: "Programmer un objet", liste: window.PARCOURS_BLOCS || [] }, algo: { nom: "Algorithmes", liste: window.PARCOURS_ALGO || [] } };
 let PARCOURS_ACTIF = "python";
 let EXOS = [], IDX_EXO = {}, NB = 0;
 function definirParcours(cle) {

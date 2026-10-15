@@ -18,13 +18,15 @@
     if (it.t === "debut" || it.t === "fin") { w = Math.max(90, tw + 36); h = 34; }
 
     else { w = Math.max(110, tw + 28); h = 38; }
-    // Entrées / sorties (Lire, Afficher) : rectangle, comme les actions.
-    const classe = (it.trou ? "sch-trou " : "") + "sch-" + (it.t === "es" ? "action" : it.t);
+    // Norme ISO 5807 : entrées / sorties (Lire, Afficher) dans un parallélogramme.
+    if (it.t === "es") w += 24;
+    const classe = (it.trou ? "sch-trou " : "") + "sch-" + it.t;
     return {
       L: w / 2, R: w / 2, H: h,
       dessin(x, y) {
         let forme;
         if (it.t === "debut" || it.t === "fin") forme = `<rect x="${x - w / 2}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" class="${classe}"/>`;
+        else if (it.t === "es") { const d = 12; forme = `<polygon points="${x - w / 2 + d},${y} ${x + w / 2},${y} ${x + w / 2 - d},${y + h} ${x - w / 2},${y + h}" class="${classe}"/>`; }
         else forme = `<rect x="${x - w / 2}" y="${y}" width="${w}" height="${h}" rx="4" class="${classe}"/>`;
         return forme + `<text x="${x}" y="${y + h / 2}" class="sch-texte${it.trou ? " sch-texte-trou" : ""}">${esc(txt)}</text>`;
       }
