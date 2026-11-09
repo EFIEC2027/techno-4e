@@ -31,9 +31,16 @@ main { max-width: 860px; margin: 0 auto; padding: 1.6rem 16px 5rem; display: gri
 .cours-schema { background: var(--fond); border-radius: 10px; padding: .6rem; }
 @media print { .barre, .onglets, .sommaire, .lien-exos { display: none; } body { background: #fff; } .lecon { break-inside: avoid; } }
 </style>
+<link rel="icon" type="image/png" href="logo-efi.png">
+<style>
+.logo-efi { width: 38px; height: 38px; border-radius: 8px; flex-shrink: 0; display: block; }
+.logo-efi.grand { width: 76px; height: 76px; border-radius: 14px; margin-bottom: .7rem; }
+.logo-efi.titre { display: inline-block; vertical-align: middle; width: 34px; height: 34px; margin-right: .5rem; }
+</style>
 </head>
 <body>
 <header class="barre">
+  <img class="logo-efi" src="logo-efi.png" alt="EFI Casablanca">
   <div class="marque">Les cours <span>4e</span></div>
   <nav class="onglets-haut droite" aria-label="Navigation">
     <a href="index.html">← Accueil</a><a href="exercices.html?p=algo">Exercices algorithmes</a><a href="exercices.html?p=blocs">Exercices programmation</a>
