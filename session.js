@@ -105,7 +105,7 @@ window.Session = (function () {
     const p = progression(id);
     (d.reussis || []).forEach(x => { if (!p.reussis.includes(x)) p.reussis.push(x); });
     sauverProgression(id, p);
-    return { ok: true, eleve: { id, code: String(code).trim(), prenom: d.prenom, classe: d.classe } };
+    return { ok: true, changer: !!d.changer, eleve: { id, code: String(code).trim(), prenom: d.prenom, classe: d.classe } };
   }
   function ouvrir(liste) { local.ecrire(CLE, { membres: liste }); }
   async function quitter(message) {

@@ -468,6 +468,7 @@ async function charger() {
   $("b-connexion").disabled = true;
   try {
     const d = await appelGet({ action: "evalEtat", id: S.eleve.id, code: S.eleve.code });
+    if (!d.ok && d.erreur === "code_a_changer") { err.textContent = "Tu dois d'abord choisir ton code personnel : va sur la page d'accueil du site et connecte-toi avec le code provisoire."; err.hidden = false; montrer("ecran-connexion"); return; }
     if (!d.ok) { err.textContent = "Identifiant ou code incorrect."; err.hidden = false; montrer("ecran-connexion"); return; }
     S.eleve.prenom = d.prenom;
     S.eleve.classe = d.classe;

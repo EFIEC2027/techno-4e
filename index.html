@@ -55,6 +55,10 @@ main { max-width: 1040px; margin: 0 auto; padding: 1.8rem 16px 4rem; display: gr
 .logo-efi.grand { width: 150px; height: 150px; border-radius: 20px; margin-bottom: .7rem; }
 .logo-efi.titre { display: inline-block; vertical-align: middle; width: 56px; height: 56px; margin-right: .5rem; }
 </style>
+<style>
+.nouveau-code { display: grid; gap: .8rem; }
+.nouveau-code .info { background: var(--surligne-doux, #fbf0c8); border-radius: 8px; padding: .6rem .8rem; margin: 0; }
+</style>
 </head>
 <body>
 
@@ -80,6 +84,14 @@ main { max-width: 1040px; margin: 0 auto; padding: 1.8rem 16px 4rem; display: gr
     </div>
     <div class="erreur-connexion" id="erreur-connexion" hidden></div>
     <button class="bouton plein" type="submit" id="b-connexion">Se connecter</button>
+  </form>
+  <form class="carte-connexion nouveau-code" id="form-nouveau" autocomplete="off" hidden>
+    <h1>Choisis <span>ton code</span></h1>
+    <p class="info"><strong id="nc-prenom"></strong>, tu t'es connecté·e avec un code provisoire. Choisis maintenant <strong>ton code secret à 4 chiffres</strong> : c'est lui que tu utiliseras à chaque connexion. Note-le dans ton cahier, et que ton voisin ne regarde pas !</p>
+    <div class="champ"><label for="nc-code">Mon nouveau code (4 chiffres)</label><input id="nc-code" inputmode="numeric" maxlength="4" required autocomplete="new-password"></div>
+    <div class="champ"><label for="nc-code2">Je le retape</label><input id="nc-code2" inputmode="numeric" maxlength="4" required autocomplete="new-password"></div>
+    <div class="erreur-connexion" id="nc-erreur" hidden></div>
+    <button class="bouton plein" type="submit" id="b-nouveau">Enregistrer mon code</button>
   </form>
 </section>
 
@@ -133,7 +145,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 1.8rem 16px 4rem; display: gr
 </div>
 
 <script src="config.js?v=20261015b"></script>
-<script src="session.js?v=20261015b"></script>
+<script src="session.js?v=20261110a"></script>
 <script src="blocs-moteur.js?v=20261015b"></script>
 <script src="algorigrammes.js?v=20261015b"></script>
 <script src="blocs.js?v=20261015b"></script>
@@ -213,10 +225,36 @@ $("form-connexion").addEventListener("submit", async ev => {
     const res = await Promise.all(demandes.map(([id, code]) => Session.connecterUn(id, code)));
     const faux = res.map((r, i) => r.ok ? null : (demandes.length > 1 ? `élève ${i + 1}` : "")).filter(x => x !== null);
     if (faux.length) { err.textContent = `Identifiant ou code incorrect${faux[0] ? " (" + faux.join(", ") + ")" : ""}. Vérifie-les avec ton professeur.`; err.hidden = false; }
+    else if (res.some(r => r.changer)) nouveauxCodes(res);
     else { Session.ouvrir(res.map(r => r.eleve)); afficherAccueil(); }
   } catch { err.textContent = "Connexion impossible. Vérifie que l'ordinateur a accès à Internet, puis réessaie."; err.hidden = false; }
   $("b-connexion").disabled = false; $("b-connexion").textContent = "Se connecter";
 });
+/* ---------- Code provisoire : chaque élève choisit le sien ---------- */
+function nouveauxCodes(res) {
+  const i = res.findIndex(r => r.changer);
+  if (i < 0) { $("form-nouveau").hidden = true; Session.ouvrir(res.map(r => r.eleve)); afficherAccueil(); return; }
+  const el = res[i].eleve;
+  $("form-connexion").hidden = true;
+  $("form-nouveau").hidden = false;
+  $("nc-prenom").textContent = el.prenom || el.id;
+  $("nc-code").value = ""; $("nc-code2").value = ""; $("nc-erreur").hidden = true;
+  $("nc-code").focus();
+  $("form-nouveau").onsubmit = async ev => {
+    ev.preventDefault();
+    const e = $("nc-erreur"), a = $("nc-code").value.trim(), b = $("nc-code2").value.trim();
+    e.hidden = true;
+    if (!/^\d{4}$/.test(a)) { e.textContent = "Ton code doit faire exactement 4 chiffres."; e.hidden = false; return; }
+    if (a !== b) { e.textContent = "Les deux codes ne sont pas pareils. Retape-les."; e.hidden = false; return; }
+    $("b-nouveau").disabled = true;
+    try {
+      const r = await fetch(Session.URL_SERVEUR, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "changerCode", id: el.id, code: el.code, nouveau: a }) }).then(x => x.json());
+      if (r.ok) { el.code = a; res[i].changer = false; nouveauxCodes(res); }
+      else { e.textContent = r.erreur === "trop_simple" ? "Ce code est trop facile à deviner (ou c'est le code provisoire). Choisis-en un autre." : "Enregistrement impossible. Réessaie ou appelle ton professeur."; e.hidden = false; }
+    } catch { e.textContent = "Connexion impossible. Vérifie Internet puis réessaie."; e.hidden = false; }
+    $("b-nouveau").disabled = false;
+  };
+}
 window.addEventListener("pageshow", e => { if (e.persisted) location.reload(); });
 </script>
 </body>
