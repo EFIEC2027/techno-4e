@@ -320,7 +320,7 @@ select#choix-eleve { border: 1.5px solid var(--trait); border-radius: 8px; paddi
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="config.js?v=20261015b"></script>
-<script src="evaluations.js?v=20261015b"></script>
+<script src="evaluations.js?v=20261110d"></script>
 <script>window.PARCOURS_PYTHON = window.PARCOURS;</script>
 <script src="algorigrammes.js?v=20261015b"></script>
 <script src="blocs-moteur.js?v=20261015b"></script>
@@ -345,7 +345,8 @@ function definirParcours(cle) {
   if (sous) sous.textContent = `Nombre moyen d'exercices réussis par élève, jour après jour (sur ${NB}).`;
   document.querySelectorAll("#choix-parcours .puce").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.parcours === cle)));
 }
-definirParcours("blocs");
+let PARCOURS_CHOISI = false;
+definirParcours("algo");
 const JOUR = 86400000;
 const NOMS_ERREURS = {
   Sortie: "Affichage incorrect", Comportement: "Fonctionnement incorrect", Consigne: "Consigne non respectée", SyntaxError: "Erreur d'écriture",
@@ -431,6 +432,13 @@ async function charger() {
       const d = await r.json();
       if (!d.ok) { if (d.erreur === "mot_de_passe") { store.suppr("techno4e:cle"); location.reload(); } throw new Error(d.erreur); }
       BRUT = d;
+    }
+    if (!PARCOURS_CHOISI) {
+      // Ouvre le parcours où les élèves ont le plus travaillé (vos élèves font d'abord « Algorithmes »).
+      const ids = cle => new Set(LES_PARCOURS[cle].liste.flatMap(m => m.exercices.map(e => e.id)));
+      const A = ids("algo"), Bl = ids("blocs");
+      let na = 0, nb = 0; (BRUT.essais || []).forEach(l => { if (A.has(l[2])) na++; else if (Bl.has(l[2])) nb++; });
+      definirParcours(nb > na ? "blocs" : "algo");
     }
     $("maj").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
     dessinerFiltres();
@@ -1071,6 +1079,7 @@ $("b-csv").addEventListener("click", () => {
 /* ---------------- Démarrage ---------------- */
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (BRUT) toutDessiner(); });
 document.querySelectorAll("#choix-parcours .puce").forEach(b => b.addEventListener("click", () => {
+  PARCOURS_CHOISI = true;
   definirParcours(b.dataset.parcours);
   if (BRUT) toutDessiner();
 }));
