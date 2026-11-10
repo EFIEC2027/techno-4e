@@ -117,6 +117,26 @@ if (REMED) {
   $("marque").innerHTML = "Retravailler <span>mes points faibles</span>";
   $("bandeau-entr").firstChild.textContent = "🏠 À faire à la maison, ou en classe quand tu as fini ton travail · pas noté.";
   const moi = (Session.membres()[0] || {}).id || "";
+  let fin22 = 0; try { fin22 = Number(localStorage.getItem("techno:fin22:" + moi)) || 0; } catch {}
+  // Seulement juste après le diagnostic (pas le soir à la maison sur le même ordinateur).
+  if (fin22 && Date.now() < fin22 + 30 * 60000) {
+    const bar = document.createElement("div");
+    bar.style.cssText = "position:sticky;top:0;z-index:50;background:#2b4c8c;color:#fff;font-weight:800;text-align:center;padding:.5rem 1rem;font-variant-numeric:tabular-nums";
+    document.body.prepend(bar);
+    const arret = () => {
+      const v = document.createElement("div");
+      v.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(255,255,255,.97);display:grid;place-items:center;text-align:center;padding:16px";
+      v.innerHTML = '<div><p style="margin:0 0 1.2rem;font-size:clamp(2rem,6vw,3.4rem);font-weight:800;line-height:1.15;color:#b93d2a">✋ Déconnecte-toi<br>et appelle ton professeur</p><button type="button" id="b-arret22" class="bouton plein" style="font-size:1.2rem;padding:.8rem 1.6rem">Se déconnecter</button><p style="margin-top:1rem">Le reste des exercices : à la maison (page d\'accueil → Entraînement → 🎯 Mes points faibles).</p></div>';
+      v.querySelector("button").addEventListener("click", () => { try { localStorage.removeItem("techno:fin22:" + moi); } catch {} Session.quitter(); });
+      document.body.appendChild(v);
+    };
+    const tic22 = () => {
+      const r = Math.max(0, Math.round((fin22 - Date.now()) / 1000));
+      bar.textContent = `⏱ Temps restant avant de te déconnecter : ${Math.floor(r / 60)}:${String(r % 60).padStart(2, "0")}`;
+      if (r === 0) { clearInterval(t22); arret(); }
+    };
+    const t22 = setInterval(tic22, 1000); tic22();
+  }
   let fp = new URLSearchParams(location.search).get("faibles");
   try { if (fp !== null) localStorage.setItem("techno:faibles:" + moi, fp); else fp = localStorage.getItem("techno:faibles:" + moi) || ""; } catch { fp = fp || ""; }
   const faibles = fp.split(",").map(id => PARCOURS.findIndex(m => m.id === id)).filter(i => i >= 0);

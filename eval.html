@@ -492,6 +492,12 @@ async function charger() {
     S.questions = tirerQuestions(await dechiffrer(S.meta, d.eval.cle));
     S.decalage = d.eval.maintenant - Date.now();
     S.debut = d.eval.debut;
+    if (S.meta.bilan) {
+      // Diagnostic : 22 min en tout à partir de la connexion (évaluation + bilan).
+      const cleCo = "techno:diagco:" + S.eleve.id + ":" + S.meta.id + ":" + S.meta.iv;
+      S.connexion = Number(local.lire(cleCo, 0)) || maintenant();
+      local.ecrire(cleCo, S.connexion);
+    }
     const l = local.lire(cleLocale(), {});
     const duServeur = d.eval.reponses && d.eval.reponses.version === S.meta.iv ? d.eval.reponses.reponses : {};
     const enLocal = l.version === S.meta.iv ? (l.reponses || {}) : {};
@@ -521,6 +527,7 @@ function consignes() {
   $("cs-titre").textContent = S.meta.titre;
   $("cs-eleve").textContent = `${S.eleve.prenom} · ${S.eleve.classe}`;
   $("cs-duree").textContent = S.reprise ? `${S.meta.duree} min (déjà commencée)` : `${S.meta.duree} min`;
+  if (S.meta.bilan) $("cs-duree").textContent = `${S.meta.finApres || 22} min en tout : ${S.meta.duree} min maximum pour répondre, puis ton bilan. Le temps compte depuis ta connexion : commence vite !` + (S.reprise ? " (déjà commencée)" : "");
   $("cs-questions").textContent = `${S.meta.nb} questions · ${S.meta.total} points`;
   $("b-commencer").textContent = S.reprise ? "Reprendre l'évaluation" : "Commencer l'évaluation";
   montrer("ecran-consignes");
@@ -684,7 +691,9 @@ $("b-executer").addEventListener("click", executer);
 /* ---------- Chronomètre ---------- */
 function tic() {
   if (!S.debut || S.termine) return;
-  const reste = Math.max(0, S.debut + S.meta.duree * 60000 - maintenant());
+  let limite = S.debut + S.meta.duree * 60000;
+  if (S.meta.bilan && S.connexion) limite = Math.min(limite, S.connexion + ((S.meta.finApres || 22) - S.meta.bilan) * 60000);
+  const reste = Math.max(0, limite - maintenant());
   const m = Math.floor(reste / 60000), s = Math.floor(reste / 1000) % 60;
   $("ep-chrono").textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   $("ep-chrono").classList.toggle("bientot", reste < 5 * 60000);
@@ -866,15 +875,17 @@ function afficherBilan() {
     { const p = document.createElement("p"); p.className = "bilan-revoir"; p.innerHTML = "<strong>Pour progresser, à la maison :</strong> 4 exercices <strong>nouveaux</strong> sur cette notion t'attendent dans « 🎯 Mes points faibles » (page d'accueil, rubrique Entraînement)."; corps.appendChild(p); }
     art.appendChild(corps); zone.appendChild(art);
   });
-  // Au moins 3 min de lecture, et jusqu'à 22 min après le début du diagnostic (connexion comprise).
-  const finSeance = S.debut ? S.debut - (S.decalage || 0) + (S.meta.finApres || 22) * 60000 : 0;
-  const fin = Math.max(Date.now() + duree * 1000, finSeance);
+  // 22 min en tout depuis la connexion : 3 min de bilan, puis (s'il reste du temps) exercices de remédiation,
+  // puis « Déconnecte-toi et appelle ton professeur ». Le chrono de l'épreuve garantit les 3 min de bilan.
+  const depart = S.connexion || S.debut;
+  const fin22 = depart ? depart - (S.decalage || 0) + (S.meta.finApres || 22) * 60000 : Date.now() + duree * 1000;
+  const finLecture = Math.min(Date.now() + duree * 1000, fin22);
   const faibles = aTravailler.map(n => notions[n].revoir && "r" + notions[n].revoir.module).filter(Boolean).join(",");
-  try { localStorage.setItem("techno:faibles:" + S.eleve.id, faibles); } catch {}
-  const tic = () => {
-    const reste = Math.max(0, Math.round((fin - Date.now()) / 1000));
-    minuteur.textContent = `⏱ Lis ton bilan · fin dans ${Math.floor(reste / 60)}:${String(reste % 60).padStart(2, "0")}`;
-    if (reste > 0) return;
+  try { localStorage.setItem("techno:faibles:" + S.eleve.id, faibles); localStorage.setItem("techno:fin22:" + S.eleve.id, String(fin22)); } catch {}
+  const mmss = ms => { const r = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, "0")}`; };
+  const maison = () => aTravailler.length ? "À la maison : page d'accueil → Entraînement → « 🎯 Mes points faibles » (notions " + aTravailler.map(n => n.split(" · ")[0].replace("Notion ", "")).join(", ") + ")." : "Tout est acquis, bravo !";
+  let phase = "lecture", attente = null;
+  const stop = () => {
     clearInterval(S.bilanTimer);
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     zone.innerHTML = "";
@@ -888,10 +899,37 @@ function afficherBilan() {
       c.innerHTML = '<p class="bilan-stop">✋ Tu es déconnecté(e).<br>Lève la main : ton professeur arrive.</p>';
     });
     c.appendChild(b);
-    const p = document.createElement("p");
-    p.textContent = aTravailler.length ? "À la maison : page d'accueil → Entraînement → « 🎯 Mes points faibles » (notions " + aTravailler.map(n => n.split(" · ")[0].replace("Notion ", "")).join(", ") + ")." : "Tout est acquis, bravo !";
-    c.appendChild(p);
+    const p = document.createElement("p"); p.textContent = maison(); c.appendChild(p);
     zone.appendChild(c);
+  };
+  const proposer = () => {
+    phase = "exos";
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    zone.innerHTML = "";
+    $("fin-titre").textContent = "Bilan terminé";
+    $("fin-texte").textContent = "Ta copie est enregistrée. Ton professeur voit ton bilan.";
+    const c = document.createElement("div"); c.className = "carte bilan-finale";
+    attente = document.createElement("p"); attente.className = "bilan-minuteur"; c.appendChild(attente);
+    const t = document.createElement("p"); t.style.margin = "0";
+    t.textContent = aTravailler.length ? "Il te reste un peu de temps : avance sur tes exercices de points faibles (exercices nouveaux, pas notés). À la fin du temps, tu te déconnectes et tu appelles ton professeur."
+                                       : "Tout est juste ! Il te reste un peu de temps : entraîne-toi sur les exercices de points faibles si tu veux. À la fin du temps, tu te déconnectes et tu appelles ton professeur.";
+    c.appendChild(t);
+    const b = document.createElement("a"); b.className = "bouton plein bilan-deco";
+    b.href = `exercices.html?p=ralgo&exo=${faibles ? faibles.split(",")[0] : "ra1"}&faibles=${faibles}`;
+    b.textContent = "🎯 Faire mes exercices de points faibles";
+    b.addEventListener("click", () => { try { local.ecrire("techno:session", { membres: [{ id: S.eleve.id, code: S.eleve.code, prenom: S.eleve.prenom, classe: S.eleve.classe }] }); } catch {} });
+    c.appendChild(b);
+    zone.appendChild(c);
+  };
+  const tic = () => {
+    const now = Date.now();
+    if (phase === "lecture") {
+      minuteur.textContent = `⏱ Lis ton bilan · encore ${mmss(finLecture - now)}`;
+      if (now < finLecture) return;
+      if (fin22 - now > 60000) { proposer(); } else { stop(); return; }
+    }
+    if (attente) attente.textContent = `⏱ Temps restant : ${mmss(fin22 - now)}`;
+    if (now >= fin22) stop();
   };
   tic(); S.bilanTimer = setInterval(tic, 1000);
 }
