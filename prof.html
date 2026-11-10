@@ -169,7 +169,7 @@ select#choix-eleve { border: 1.5px solid var(--trait); border-radius: 8px; paddi
     <h1><img class="logo-efi titre" src="logo-efi.png" alt="EFI Casablanca">Suivi <span style="color:var(--accent)">Techno 4e</span></h1>
     <p>Tableau de bord enseignant. Saisissez le mot de passe défini dans la Google Sheet (menu « Techno 4e »).</p>
     <label>Mot de passe <input type="password" id="cle" autocomplete="current-password" required></label>
-    <label class="case"><input type="checkbox" id="memoriser"> Rester connectée sur cet appareil</label>
+    <label class="case"><input type="checkbox" id="memoriser" checked> Rester connectée sur cet appareil</label>
     <div class="erreur" id="erreur-cle" hidden></div>
     <button class="bouton plein" id="b-cle" type="submit">Ouvrir le tableau de bord</button>
   </form>
@@ -428,7 +428,7 @@ async function charger() {
     else {
       const r = await fetch(URL_SERVEUR + "?" + new URLSearchParams({ action: "donnees", cle: CLE }));
       const d = await r.json();
-      if (!d.ok) { if (d.erreur === "mot_de_passe") { store.suppr("pyclasse:cle"); location.reload(); } throw new Error(d.erreur); }
+      if (!d.ok) { if (d.erreur === "mot_de_passe") { store.suppr("techno4e:cle"); location.reload(); } throw new Error(d.erreur); }
       BRUT = d;
     }
     $("maj").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -450,7 +450,7 @@ $("form-cle").addEventListener("submit", async ev => {
     const d = await r.json();
     if (!d.ok) throw new Error(d.erreur);
     CLE = cle;
-    store.ecrire("pyclasse:cle", cle, $("memoriser").checked);
+    store.ecrire("techno4e:cle", cle, $("memoriser").checked);
     ouvrir();
   } catch (e) {
     $("erreur-cle").textContent = String(e.message) === "mot_de_passe"
@@ -1074,7 +1074,7 @@ document.querySelectorAll("#choix-parcours .puce").forEach(b => b.addEventListen
   if (BRUT) toutDessiner();
 }));
 if (DEMO) { CLE = "demo"; ouvrir(); }
-else { CLE = store.lire("pyclasse:cle"); if (CLE) ouvrir(); }
+else { CLE = store.lire("techno4e:cle"); if (CLE) ouvrir(); }
 </script>
 </body>
 </html>
