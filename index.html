@@ -152,6 +152,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 1.8rem 16px 4rem; display: gr
 <script src="blocs.js?v=20261110a"></script>
 <script src="entrainement.js?v=20261110a"></script>
 <script src="accueil.js?v=20261110a"></script>
+<script src="objectif.js?v=20261110a"></script>
 <script src="evaluations.js?v=20261015b"></script>
 <script>
 "use strict";
@@ -173,6 +174,8 @@ function barres(zone, ids, membres) {
 function majProgression() {
   const ms = Session.membres(); barres($("prog-algo"), IDS_ALGO, ms); barres($("prog-blocs"), IDS_BLOCS, ms);
   const reg = Session.reglages();
+  const o = Objectif.pour((ms[0] || {}).classe, PARCOURS_ALGO, PARCOURS_BLOCS);
+  if (o) { const r = Session.reussisEquipe(); const suite = o.ids.find(x => !r.has(x)); Objectif.bandeau(document.querySelector("#app main"), o, ms, Session.progression, suite ? `exercices.html?p=${o.obj.parcours}&exo=${suite}` : null); }
   Accueil.dessiner({ zone: document.querySelector("#app main"), cle: ms.map(m => m.id).sort().join("+"), reussis: Session.reussisEquipe(), tentes: Session.tentesEquipe(), conseils: reg.conseils,
     parcours: [{ nom: "Algorithmes", modules: PARCOURS_ALGO, lien: id => "exercices.html?p=algo&exo=" + id }, { nom: "Programmer un objet", modules: PARCOURS_BLOCS, lien: id => "exercices.html?p=blocs&exo=" + id }],
     entrainement: [{ nom: "Algorithmes", modules: window.PARCOURS_ENTR_ALGO || [], lien: "exercices.html?p=ealgo", lienExo: id => "exercices.html?p=ealgo&exo=" + id },

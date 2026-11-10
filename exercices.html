@@ -89,6 +89,7 @@
 <script src="blocs.js?v=20261110a"></script>
 <script src="entrainement.js?v=20261110a"></script>
 <script src="commun.js?v=20261110a"></script>
+<script src="objectif.js?v=20261110a"></script>
 <script>
 "use strict";
 if (!Session.exiger()) throw new Error("non connecté");
@@ -148,6 +149,13 @@ function dessinerParcours() {
     });
     nav.appendChild(bloc);
   });
+  if (typeof majObjectif === "function") majObjectif();
+}
+const OBJ = ENTR ? null : Objectif.pour((Session.membres()[0] || {}).classe, window.PARCOURS_ALGO, window.PARCOURS_BLOCS);
+function majObjectif() {
+  if (!OBJ || OBJ.obj.parcours !== P) return;
+  Objectif.bandeau(document.querySelector(".exo-contenu"), OBJ, Session.membres(), Session.progression, null);
+  document.querySelectorAll("#parcours .pastille").forEach(b => { const e = EXOS.find(x => `${x.num}` === b.textContent); if (e && OBJ.ids.includes(e.id)) b.classList.add("objectif-pastille"); });
 }
 function majJauge() {
   const n = [...Session.reussisEquipe()].filter(x => IDS.has(x)).length, t = EXOS.length;
@@ -531,6 +539,8 @@ const reussisDepart = Session.reussisEquipe();
 const demande = new URLSearchParams(location.search).get("exo");
 choisir((EXOS.find(e => e.id === demande) || EXOS.find(e => e.module.id === demande && !reussisDepart.has(e.id)) || EXOS.find(e => e.module.id === demande) || EXOS.find(e => !reussisDepart.has(e.id)) || EXOS[0]).id);
 majTour();
+majObjectif();
+Session.surChangement(majObjectif);
 Commun.conseils($("conseils"), Session.reglages().conseils, EXOS, choisir, Session.reussisEquipe());
 Session.surChangement(() => { if (!ENTR && Session.reglages().ferme) Commun.ferme("exercices.html?p=e" + P); });
 Session.resynchroniser();
