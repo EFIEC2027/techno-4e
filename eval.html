@@ -131,6 +131,17 @@ pre.programme { font-size: 1rem; line-height: 1.6; }
 .note { font-family: var(--f-titre); font-size: 4rem; font-weight: 800; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
 .note small { font-size: .4em; color: var(--doux); font-weight: 600; }
 .correction { display: grid; gap: .9rem; }
+.bilan-minuteur { position: sticky; top: 0; z-index: 2; margin: 0; padding: .5rem 1rem; background: var(--accent); color: #fff; font-weight: 800; border-radius: 10px; text-align: center; font-variant-numeric: tabular-nums; }
+.bilan-acquis { display: flex; flex-wrap: wrap; gap: .4rem; }
+.bilan-puce { padding: .35rem .7rem; border-radius: 999px; font-weight: 700; font-size: .9rem; border: 1px solid var(--trait); }
+.bilan-puce.ok { background: var(--ok-doux); color: var(--ok); } .bilan-puce.ko { background: var(--ko-doux); color: var(--ko); } .bilan-puce.moyen { background: var(--surligne-doux); }
+.bilan-corps { padding: .8rem 1rem 1rem; display: grid; gap: .8rem; }
+.bilan-erreur { display: grid; gap: .5rem; padding-bottom: .8rem; border-bottom: 1px dashed var(--trait); }
+.bilan-q { margin: 0; font-weight: 700; }
+.bilan-reps { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+.bilan-pourquoi { margin: 0; padding: .6rem .8rem; background: var(--surligne-doux); border-radius: 8px; font-weight: 600; }
+.bilan-rappel, .bilan-revoir { margin: 0; }
+.bilan-finale { text-align: center; display: grid; gap: .8rem; justify-items: center; }
 .cor { background: var(--papier); border: 1px solid var(--trait); border-radius: 12px; overflow: hidden; }
 .cor header { display: flex; justify-content: space-between; gap: 1rem; padding: .6rem 1rem; border-left: 6px solid var(--doux); }
 .cor.plein header { border-left-color: var(--ok); background: var(--ok-doux); }
@@ -320,7 +331,7 @@ pre.programme { font-size: 1rem; line-height: 1.6; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
 <script src="config.js?v=20261015b"></script>
 <script src="blocs-moteur.js?v=20261015b"></script>
-<script src="evaluations.js?v=20261110d"></script>
+<script src="evaluations.js?v=20261110e"></script>
 <script src="verif.js?v=20261015b"></script>
 <script src="schema.js?v=20261015b"></script>
 <script>
@@ -408,7 +419,7 @@ function tirerQuestions(brutes) {
   for (let i = ordre.length - 1; i > 0; i--) { const j = Math.floor(alea() * (i + 1)); [ordre[i], ordre[j]] = [ordre[j], ordre[i]]; }
   return ordre.map(k => {
     const q = brutes[k], v = Math.floor(alea() * q.variantes.length);
-    const choisie = { ...q.variantes[v], points: q.points, titre: q.titre, num: k + 1, version: "ABC"[v] };
+    const choisie = { ...q.variantes[v], points: q.points, titre: q.titre, notion: q.notion, rappel: q.rappel, revoir: q.revoir, num: k + 1, version: "ABC"[v] };
     if (choisie.type === "qcm") {
       choisie.bonneReponse = choisie.choix[choisie.bonne];
       const c = [...choisie.choix];
@@ -791,9 +802,89 @@ async function rendre(auto) {
 function termine() {
   S.termine = true;
   local.suppr(cleLocale());
+  if (S.meta.bilan) { afficherBilan(); montrer("ecran-fin"); return; }
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   afficherCorrection();
   montrer("ecran-fin");
+}
+
+/* ---------- Diagnostic : bilan personnalisé, affiché quelques minutes ---------- */
+function explicationAdaptee(q, reponse) {
+  const r = String(reponse || "").trim();
+  if (!r) return "Tu n'as pas répondu. " + (q.rappel || q.explication || "");
+  const p = q.pieges || {};
+  if (q.type === "qcm" && p[r]) return p[r];
+  if (q.type === "prediction") { const k = Object.keys(p).find(x => normaliserReponse(x) === normaliserReponse(r)); if (k) return p[k]; }
+  return q.explication || "";
+}
+function afficherBilan() {
+  const r = S.resultat; if (!r) return;
+  const duree = S.meta.bilan * 60;
+  $("fin-titre").textContent = "Ton bilan personnalisé";
+  $("fin-note").textContent = virgule(r.note20);
+  const zone = $("fin-correction"); zone.innerHTML = ""; zone.hidden = false;
+  const minuteur = document.createElement("p"); minuteur.className = "bilan-minuteur"; zone.appendChild(minuteur);
+  // Regroupe par notion, dans l'ordre du parcours
+  const notions = {};
+  S.questions.forEach((q, i) => {
+    const n = q.notion || "Autres"; (notions[n] = notions[n] || { ok: 0, total: 0, erreurs: [], revoir: q.revoir }).total++;
+    if (r.details[i].points === r.details[i].max) notions[n].ok++; else notions[n].erreurs.push(i);
+  });
+  const noms = Object.keys(notions).sort();
+  const aTravailler = noms.filter(n => notions[n].erreurs.length);
+  $("fin-texte").textContent = aTravailler.length
+    ? `Lis bien ton bilan : tu as ${Math.round(duree / 60)} minutes. Il te dit ce que tu dois retravailler et pourquoi tu t'es trompé(e).`
+    : "Bravo, tout est juste ! Tu maîtrises les notions 1 à 4.";
+  const acquis = document.createElement("div"); acquis.className = "bilan-acquis";
+  noms.forEach(n => {
+    const x = notions[n], s2 = document.createElement("span");
+    s2.className = "bilan-puce " + (x.erreurs.length === 0 ? "ok" : x.ok === 0 ? "ko" : "moyen");
+    s2.textContent = `${x.erreurs.length === 0 ? "✓ Acquis" : x.ok === 0 ? "✗ À retravailler" : "◐ Presque"} · ${n} (${x.ok}/${x.total})`;
+    acquis.appendChild(s2);
+  });
+  zone.appendChild(acquis);
+  aTravailler.forEach(n => {
+    const x = notions[n];
+    const art = document.createElement("article"); art.className = "cor zero bilan-notion";
+    const h = document.createElement("header"); const t = document.createElement("strong"); t.textContent = "À travailler · " + n; h.appendChild(t); art.appendChild(h);
+    const corps = document.createElement("div"); corps.className = "bilan-corps";
+    x.erreurs.forEach(i => {
+      const q = S.questions[i], d = document.createElement("div"); d.className = "bilan-erreur";
+      const titre = document.createElement("p"); titre.className = "bilan-q"; titre.textContent = q.titre; d.appendChild(titre);
+      if (q.schema) { const z = document.createElement("div"); z.className = "schema-zone cor-schema"; z.innerHTML = Schema.dessiner(q.schema); d.appendChild(z); }
+      const lignes = document.createElement("div"); lignes.className = "bilan-reps";
+      lignes.appendChild(bloc("Ta réponse", String(S.reponses[i] || "").trim() || "(pas de réponse)"));
+      lignes.appendChild(bloc("Bonne réponse", q.type === "qcm" ? q.bonneReponse : q.attendu, "bon"));
+      d.appendChild(lignes);
+      const pq = document.createElement("p"); pq.className = "bilan-pourquoi"; pq.textContent = "Pourquoi : " + explicationAdaptee(q, S.reponses[i]); d.appendChild(pq);
+      corps.appendChild(d);
+    });
+    const uniques = cle => [...new Set(x.erreurs.map(i => cle(S.questions[i])).filter(Boolean))];
+    uniques(q => q.rappel).forEach(t => { const p = document.createElement("p"); p.className = "bilan-rappel"; p.innerHTML = "<strong>À retenir :</strong> "; p.append(t); corps.appendChild(p); });
+    const rev = uniques(q => q.revoir && q.revoir.texte);
+    if (rev.length) { const p = document.createElement("p"); p.className = "bilan-revoir"; p.innerHTML = "<strong>Pour progresser :</strong> "; p.append(rev.join(" ")); corps.appendChild(p); }
+    art.appendChild(corps); zone.appendChild(art);
+  });
+  const fin = Date.now() + duree * 1000;
+  const tic = () => {
+    const reste = Math.max(0, Math.round((fin - Date.now()) / 1000));
+    minuteur.textContent = `⏱ Temps de lecture : ${Math.floor(reste / 60)}:${String(reste % 60).padStart(2, "0")}`;
+    if (reste > 0) return;
+    clearInterval(S.bilanTimer);
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    const a = aTravailler.length ? notions[aTravailler[0]].revoir : null;
+    zone.innerHTML = "";
+    const c = document.createElement("div"); c.className = "carte bilan-finale";
+    c.innerHTML = "<h2>Temps de lecture terminé</h2>";
+    const p = document.createElement("p");
+    p.textContent = aTravailler.length ? "Notions à retravailler : " + aTravailler.map(n => n.split(" · ")[0]).join(", ") + ". " + (a ? "Commence par : " + a.texte : "") : "Tout est acquis : continue le parcours !";
+    c.appendChild(p);
+    const b = document.createElement("a"); b.className = "bouton plein"; b.href = a ? `exercices.html?p=algo&exo=${a.module}` : "index.html";
+    b.textContent = a ? "Aller refaire ces exercices" : "Retour à l'accueil"; c.appendChild(b);
+    zone.appendChild(c);
+    $("fin-texte").textContent = "Ta copie est enregistrée. Ton professeur voit ton bilan.";
+  };
+  tic(); S.bilanTimer = setInterval(tic, 1000);
 }
 
 function bloc(etiquette, texte, classe) {
