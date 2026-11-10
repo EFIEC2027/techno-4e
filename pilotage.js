@@ -50,14 +50,15 @@
     ["entr-py", "Entraînement Python", window.PARCOURS_ENTRAINEMENT],
     ["entr-al", "Entraînement algorigrammes", window.PARCOURS_ENTRAINEMENT_ALGO],
     ["entr-algo", "Entraînement algorithmes", window.PARCOURS_ENTR_ALGO],
-    ["entr-blocs", "Entraînement programmer", window.PARCOURS_ENTR_BLOCS]
+    ["entr-blocs", "Entraînement programmer", window.PARCOURS_ENTR_BLOCS],
+    ["remed-algo", "Remédiation algorithmes", window.PARCOURS_REMED_ALGO]
   ].filter(x => Array.isArray(x[2]) && x[2].length);
   ENTR.forEach(([cle, nom, liste]) => {
     LES_PARCOURS[cle] = { nom, liste };
     recenser(nom, liste, true);
     const b = document.createElement("button");
     b.type = "button"; b.className = "puce"; b.dataset.parcours = cle; b.setAttribute("aria-pressed", "false");
-    b.textContent = "🏋️ " + nom.replace("Entraînement ", "");
+    b.textContent = (cle.startsWith("remed") ? "🎯 " : "🏋️ ") + nom.replace("Entraînement ", "");
     b.title = nom + " (pas noté)";
     b.addEventListener("click", () => { definirParcours(cle); if (BRUT) toutDessiner(); });
     $("choix-parcours").appendChild(b);

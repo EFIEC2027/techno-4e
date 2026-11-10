@@ -326,6 +326,7 @@ select#choix-eleve { border: 1.5px solid var(--trait); border-radius: 8px; paddi
 <script src="blocs-moteur.js?v=20261015b"></script>
 <script src="blocs.js?v=20261110a"></script>
 <script src="entrainement.js?v=20261110a"></script>
+<script src="remediation.js?v=20261110a"></script>
 <script>
 "use strict";
 const URL_SERVEUR = (window.CONFIG && CONFIG.url || "").trim();
@@ -1086,6 +1087,6 @@ document.querySelectorAll("#choix-parcours .puce").forEach(b => b.addEventListen
 if (DEMO) { CLE = "demo"; ouvrir(); }
 else { CLE = store.lire("techno4e:cle"); if (CLE) ouvrir(); }
 </script>
-<script src="pilotage.js?v=20261110b"></script>
+<script src="pilotage.js?v=20261110c"></script>
 </body>
 </html>

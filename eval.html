@@ -861,8 +861,7 @@ function afficherBilan() {
     });
     const uniques = cle => [...new Set(x.erreurs.map(i => cle(S.questions[i])).filter(Boolean))];
     uniques(q => q.rappel).forEach(t => { const p = document.createElement("p"); p.className = "bilan-rappel"; p.innerHTML = "<strong>À retenir :</strong> "; p.append(t); corps.appendChild(p); });
-    const rev = uniques(q => q.revoir && q.revoir.texte);
-    if (rev.length) { const p = document.createElement("p"); p.className = "bilan-revoir"; p.innerHTML = "<strong>Pour progresser :</strong> "; p.append(rev.join(" ")); corps.appendChild(p); }
+    { const p = document.createElement("p"); p.className = "bilan-revoir"; p.innerHTML = "<strong>Pour progresser :</strong> après ce bilan, tu feras 4 exercices <strong>nouveaux</strong> sur cette notion, faits pour corriger ces erreurs."; corps.appendChild(p); }
     art.appendChild(corps); zone.appendChild(art);
   });
   const fin = Date.now() + duree * 1000;
@@ -877,10 +876,13 @@ function afficherBilan() {
     const c = document.createElement("div"); c.className = "carte bilan-finale";
     c.innerHTML = "<h2>Temps de lecture terminé</h2>";
     const p = document.createElement("p");
-    p.textContent = aTravailler.length ? "Notions à retravailler : " + aTravailler.map(n => n.split(" · ")[0]).join(", ") + ". " + (a ? "Commence par : " + a.texte : "") : "Tout est acquis : continue le parcours !";
+    p.textContent = aTravailler.length ? "Notions à retravailler : " + aTravailler.map(n => n.split(" · ")[0]).join(", ") + ". Des exercices nouveaux, que tu n'as jamais vus, t'attendent pour chacune : commence par la " + aTravailler[0].split(" · ")[0].toLowerCase() + "." : "Tout est acquis : continue le parcours !";
     c.appendChild(p);
-    const b = document.createElement("a"); b.className = "bouton plein"; b.href = a ? `exercices.html?p=algo&exo=${a.module}` : "index.html";
-    b.textContent = a ? "Aller refaire ces exercices" : "Retour à l'accueil"; c.appendChild(b);
+    const b = document.createElement("a"); b.className = "bouton plein";
+    b.href = a ? `exercices.html?p=ralgo&exo=r${a.module}&faibles=${aTravailler.map(n => notions[n].revoir && "r" + notions[n].revoir.module).filter(Boolean).join(",")}` : "index.html";
+    b.textContent = a ? "🎯 Faire mes exercices de remédiation" : "Retour à l'accueil"; c.appendChild(b);
+    // La remédiation se fait seul, avec son propre identifiant.
+    b.addEventListener("click", () => { try { local.ecrire("techno:session", { membres: [{ id: S.eleve.id, code: S.eleve.code, prenom: S.eleve.prenom, classe: S.eleve.classe }] }); } catch {} });
     zone.appendChild(c);
     $("fin-texte").textContent = "Ta copie est enregistrée. Ton professeur voit ton bilan.";
   };

@@ -88,6 +88,7 @@
 <script src="algorigrammes.js?v=20261015b"></script>
 <script src="blocs.js?v=20261110a"></script>
 <script src="entrainement.js?v=20261110a"></script>
+<script src="remediation.js?v=20261110a"></script>
 <script src="commun.js?v=20261110a"></script>
 <script src="objectif.js?v=20261110a"></script>
 <script>
@@ -95,9 +96,10 @@
 if (!Session.exiger()) throw new Error("non connecté");
 const $ = id => document.getElementById(id);
 const P0 = new URLSearchParams(location.search).get("p") || "";
-const ENTR = P0.startsWith("e");
-const P = P0.replace(/^e/, "") === "algo" ? "algo" : "blocs";
-const PARCOURS = ENTR ? (P === "algo" ? window.PARCOURS_ENTR_ALGO : window.PARCOURS_ENTR_BLOCS) : (P === "algo" ? window.PARCOURS_ALGO : window.PARCOURS_BLOCS);
+const REMED = P0 === "ralgo";
+const ENTR = P0.startsWith("e") || REMED;
+const P = P0.replace(/^[er]/, "") === "algo" ? "algo" : "blocs";
+const PARCOURS = REMED ? window.PARCOURS_REMED_ALGO : ENTR ? (P === "algo" ? window.PARCOURS_ENTR_ALGO : window.PARCOURS_ENTR_BLOCS) : (P === "algo" ? window.PARCOURS_ALGO : window.PARCOURS_BLOCS);
 const EXOS = PARCOURS.flatMap((m, im) => m.exercices.map((e, ie) => ({ ...e, module: m, num: `${im + 1}.${ie + 1}` })));
 const IDS = new Set(EXOS.map(e => e.id));
 const S = { exo: null, indices: {}, activite: Date.now() };
@@ -109,6 +111,14 @@ $("marque").innerHTML = ENTR ? (P === "algo" ? "Entraînement <span>algorithmes<
 $("lien-entr").href = ENTR ? "exercices.html?p=" + (P === "algo" ? "eblocs" : "ealgo") : "exercices.html?p=e" + P;
 $("lien-entr").textContent = ENTR ? (P === "algo" ? "🏋️ Entraînement programmer" : "🏋️ Entraînement algorithmes") : "🏋️ Entraînement";
 $("bandeau-entr").hidden = !ENTR;
+if (REMED) {
+  document.title = "Retravailler mes points faibles · 4e";
+  $("lien-entr").href = "exercices.html?p=ealgo"; $("lien-entr").textContent = "🏋️ Entraînement algorithmes";
+  $("marque").innerHTML = "Retravailler <span>mes points faibles</span>";
+  $("bandeau-entr").firstChild.textContent = "🎯 Exercices nouveaux pour tes points faibles · pas noté.";
+  const faibles = (new URLSearchParams(location.search).get("faibles") || "").split(",").map(id => PARCOURS.findIndex(m => m.id === id)).filter(i => i >= 0);
+  $("bandeau-entr").childNodes[1].textContent = (faibles.length ? " Ton diagnostic : tu dois retravailler " + (faibles.length === 1 ? "la notion " + (faibles[0] + 1) : "les notions " + faibles.map(i => i + 1).slice(0, -1).join(", ") + " et " + (faibles[faibles.length - 1] + 1)) + "." : " Choisis la notion que tu veux retravailler.") + " Lis le petit cours, puis fais les exercices : tu ne les as jamais vus. Recommence autant que tu veux.";
+}
 if (!ENTR && Session.reglages().ferme) Commun.ferme("exercices.html?p=e" + P);
 $("lien-cours").href = "cours.html#" + P;
 $("lien-cours").textContent = P === "algo" ? "📖 Cours algorithmes" : "📖 Cours programmation";
