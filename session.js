@@ -1,6 +1,6 @@
 /*
- * Session des pages 4e : un élève seul ou deux élèves (binôme) sur le même ordinateur.
- * Chaque élève garde sa propre progression ; chaque essai est enregistré pour chacun des deux.
+ * Session des pages 4e : un élève seul, ou deux ou trois élèves sur le même ordinateur.
+ * Chaque élève garde sa propre progression ; chaque essai est enregistré pour chacun.
  */
 window.Session = (function () {
   "use strict";
@@ -19,7 +19,7 @@ window.Session = (function () {
   const session = () => local.lire(CLE, null);
   const membres = () => (session() || { membres: [] }).membres;
   const cleEquipe = () => "techno-eq:" + membres().map(m => m.id).sort().join("+");
-  const noms = () => membres().map(m => m.prenom || m.id).join(" et ");
+  const noms = () => { const n = membres().map(m => m.prenom || m.id); return n.length > 1 ? n.slice(0, -1).join(", ") + " et " + n[n.length - 1] : n.join(""); };
 
   /* Progression d'un élève : réussis, tentés, essais à envoyer. */
   const progression = id => Object.assign({ reussis: [], tentes: [], file: [] }, local.lire("techno:" + id, {}));

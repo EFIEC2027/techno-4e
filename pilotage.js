@@ -286,7 +286,7 @@
       return { exo: k.split("|")[0], paquets };
     }).filter(g => g.paquets.length >= 2)
       .map(g => ({ ...g, ecart: Math.min(...g.paquets.slice(1).map((p, i) => (p.t - g.paquets[i].t) / MIN)) })).sort((a, b) => a.ecart - b.ecart);
-    zc.innerHTML = copies.length ? copies.slice(0, 40).map(g => `<div style="${g.ecart < 20 ? "border-left-color:var(--ko)" : ""}"><b>${esc(libExo(g.exo))}</b> : ${g.paquets.map(p => `${p.ids.map(id => esc(nomAff(parId[id]))).join(" + ")}${p.ids.length > 1 ? " (binôme)" : ""} (${dateHeure(p.t)})`).join(", ")}${g.ecart < 20 ? ` · <b style="color:var(--ko)">${Math.round(g.ecart)} min d'écart</b>` : ""}</div>`).join("")
+    zc.innerHTML = copies.length ? copies.slice(0, 40).map(g => `<div style="${g.ecart < 20 ? "border-left-color:var(--ko)" : ""}"><b>${esc(libExo(g.exo))}</b> : ${g.paquets.map(p => `${p.ids.map(id => esc(nomAff(parId[id]))).join(" + ")}${p.ids.length > 1 ? " (même ordinateur)" : ""} (${dateHeure(p.t)})`).join(", ")}${g.ecart < 20 ? ` · <b style="color:var(--ko)">${Math.round(g.ecart)} min d'écart</b>` : ""}</div>`).join("")
       : `<p class="sous">Aucun code identique repéré.</p>`;
     const parEx = {};
     ess.forEach(x => { const k = x[1] + "|" + x[2]; (parEx[k] = parEx[k] || []).push(x); });

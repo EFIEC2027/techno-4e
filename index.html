@@ -76,11 +76,17 @@ main { max-width: 1040px; margin: 0 auto; padding: 1.8rem 16px 4rem; display: gr
       <div class="champ"><label for="c-id">Identifiant</label><input id="c-id" required placeholder="efi26_lm07" autocapitalize="none" spellcheck="false"></div>
       <div class="champ code"><label for="c-code">Code</label><input id="c-code" inputmode="numeric" maxlength="8" placeholder="••••"></div>
     </div>
-    <label class="binome-choix"><input type="checkbox" id="c-binome"> Nous sommes deux sur cet ordinateur</label>
+    <label class="binome-choix"><input type="checkbox" id="c-binome"> Nous sommes plusieurs sur cet ordinateur</label>
     <div class="eleve-bloc" id="bloc-eleve2" hidden>
       <b>Élève 2</b>
       <div class="champ"><label for="c-id2">Identifiant</label><input id="c-id2" placeholder="efi26_kb12" autocapitalize="none" spellcheck="false"></div>
       <div class="champ code"><label for="c-code2">Code</label><input id="c-code2" inputmode="numeric" maxlength="8" placeholder="••••"></div>
+    </div>
+    <label class="binome-choix" id="choix-trois" hidden><input type="checkbox" id="c-trois"> Nous sommes trois</label>
+    <div class="eleve-bloc" id="bloc-eleve3" hidden>
+      <b>Élève 3</b>
+      <div class="champ"><label for="c-id3">Identifiant</label><input id="c-id3" placeholder="efi26_ab03" autocapitalize="none" spellcheck="false"></div>
+      <div class="champ code"><label for="c-code3">Code</label><input id="c-code3" inputmode="numeric" maxlength="8" placeholder="••••"></div>
     </div>
     <div class="erreur-connexion" id="erreur-connexion" hidden></div>
     <button class="bouton plein" type="submit" id="b-connexion">Se connecter</button>
@@ -146,7 +152,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 1.8rem 16px 4rem; display: gr
 </div>
 
 <script src="config.js?v=20261015b"></script>
-<script src="session.js?v=20261110b"></script>
+<script src="session.js?v=20261110c"></script>
 <script src="blocs-moteur.js?v=20261015b"></script>
 <script src="algorigrammes.js?v=20261015b"></script>
 <script src="blocs.js?v=20261110a"></script>
@@ -214,7 +220,8 @@ function afficherAccueil() {
 }
 $("b-deconnexion").addEventListener("click", () => Session.quitter());
 
-/* ---------- Connexion (seul ou à deux) ---------- */
+/* ---------- Connexion (seul, à deux ou à trois) ---------- */
+$("c-trois").addEventListener("change", () => { const t = $("c-trois").checked; $("bloc-eleve3").hidden = !t; $("c-id3").required = t; if (t) $("c-id3").focus(); });
 $("etablissement").textContent = (window.CONFIG && CONFIG.etablissement) || "";
 $("bandeau-demo").hidden = !Session.DEMO;
 document.querySelectorAll(".champ.code").forEach(c => { c.hidden = Session.DEMO; });
@@ -223,6 +230,8 @@ $("c-binome").addEventListener("change", () => {
   $("bloc-eleve2").hidden = !deux;
   $("titre-eleve1").textContent = deux ? "Élève 1" : "Élève";
   $("c-id2").required = deux;
+  $("choix-trois").hidden = !deux;
+  if (!deux) { $("c-trois").checked = false; $("bloc-eleve3").hidden = true; $("c-id3").required = false; }
   if (deux) $("c-id2").focus();
 });
 const msg = Session.message();
@@ -234,8 +243,10 @@ $("form-connexion").addEventListener("submit", async ev => {
   err.hidden = true;
   const demandes = [[$("c-id").value, $("c-code").value]];
   if ($("c-binome").checked) demandes.push([$("c-id2").value, $("c-code2").value]);
+  if ($("c-binome").checked && $("c-trois").checked) demandes.push([$("c-id3").value, $("c-code3").value]);
   if (demandes.some(([id]) => !id.trim())) return;
-  if (demandes.length === 2 && demandes[0][0].trim().toLowerCase() === demandes[1][0].trim().toLowerCase()) { err.textContent = "Les deux identifiants sont identiques."; err.hidden = false; return; }
+  const idsTapes = demandes.map(([id]) => id.trim().toLowerCase());
+  if (new Set(idsTapes).size < idsTapes.length) { err.textContent = "Deux identifiants sont identiques : chacun tape le sien."; err.hidden = false; return; }
   $("b-connexion").disabled = true; $("b-connexion").textContent = "Connexion…";
   try {
     const res = await Promise.all(demandes.map(([id, code]) => Session.connecterUn(id, code)));

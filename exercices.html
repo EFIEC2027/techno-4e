@@ -82,7 +82,7 @@
 <script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/javascript_compressed.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/msg/fr.js"></script>
 <script src="config.js?v=20261015b"></script>
-<script src="session.js?v=20261110b"></script>
+<script src="session.js?v=20261110c"></script>
 <script src="blocs-moteur.js?v=20261015b"></script>
 <script src="schema.js?v=20261015b"></script>
 <script src="algorigrammes.js?v=20261015b"></script>
@@ -521,8 +521,8 @@ function majTour() {
   const ms = Session.membres(), z = $("tour-binome");
   if (ms.length < 2) { z.hidden = true; return; }
   const n = [...Session.reussisEquipe()].filter(x => IDS.has(x)).length;
-  const pilote = ms[Math.floor(n / 2) % 2];
-  const texte = `⌨️ C'est à ${pilote.prenom || pilote.id} de tenir la souris et le clavier. L'autre lit la consigne et aide. On change tous les 2 exercices réussis.`;
+  const pilote = ms[Math.floor(n / 2) % ms.length];
+  const texte = `⌨️ C'est à ${pilote.prenom || pilote.id} de tenir la souris et le clavier. ${ms.length > 2 ? "Les autres lisent la consigne et aident" : "L'autre lit la consigne et aide"}. On change tous les 2 exercices réussis.`;
   if (z.dataset.pilote && z.dataset.pilote !== pilote.id) z.classList.add("change");
   z.dataset.pilote = pilote.id;
   z.textContent = texte;
