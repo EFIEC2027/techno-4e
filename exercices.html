@@ -88,7 +88,7 @@
 <script src="algorigrammes.js?v=20261015b"></script>
 <script src="blocs.js?v=20261110a"></script>
 <script src="entrainement.js?v=20261110a"></script>
-<script src="remediation.js?v=20261110a"></script>
+<script src="remediation.js?v=20261110b"></script>
 <script src="commun.js?v=20261110a"></script>
 <script src="objectif.js?v=20261110a"></script>
 <script>
@@ -115,9 +115,12 @@ if (REMED) {
   document.title = "Retravailler mes points faibles · 4e";
   $("lien-entr").href = "exercices.html?p=ealgo"; $("lien-entr").textContent = "🏋️ Entraînement algorithmes";
   $("marque").innerHTML = "Retravailler <span>mes points faibles</span>";
-  $("bandeau-entr").firstChild.textContent = "🎯 Exercices nouveaux pour tes points faibles · pas noté.";
-  const faibles = (new URLSearchParams(location.search).get("faibles") || "").split(",").map(id => PARCOURS.findIndex(m => m.id === id)).filter(i => i >= 0);
-  $("bandeau-entr").childNodes[1].textContent = (faibles.length ? " Ton diagnostic : tu dois retravailler " + (faibles.length === 1 ? "la notion " + (faibles[0] + 1) : "les notions " + faibles.map(i => i + 1).slice(0, -1).join(", ") + " et " + (faibles[faibles.length - 1] + 1)) + "." : " Choisis la notion que tu veux retravailler.") + " Lis le petit cours, puis fais les exercices : tu ne les as jamais vus. Recommence autant que tu veux.";
+  $("bandeau-entr").firstChild.textContent = "🏠 À faire à la maison, ou en classe quand tu as fini ton travail · pas noté.";
+  const moi = (Session.membres()[0] || {}).id || "";
+  let fp = new URLSearchParams(location.search).get("faibles");
+  try { if (fp !== null) localStorage.setItem("techno:faibles:" + moi, fp); else fp = localStorage.getItem("techno:faibles:" + moi) || ""; } catch { fp = fp || ""; }
+  const faibles = fp.split(",").map(id => PARCOURS.findIndex(m => m.id === id)).filter(i => i >= 0);
+  $("bandeau-entr").childNodes[1].textContent = (faibles.length ? " Ton diagnostic : tu dois retravailler " + (faibles.length === 1 ? "la notion " + (faibles[0] + 1) : "les notions " + faibles.map(i => i + 1).slice(0, -1).join(", ") + " et " + (faibles[faibles.length - 1] + 1)) + "." : " Choisis la notion que tu veux retravailler.") + " Ce sont des exercices nouveaux, faits pour tes erreurs du diagnostic. Lis le petit cours, puis fais les exercices. Recommence autant que tu veux.";
 }
 if (!ENTR && Session.reglages().ferme) Commun.ferme("exercices.html?p=e" + P);
 $("lien-cours").href = "cours.html#" + P;

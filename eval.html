@@ -833,7 +833,7 @@ function afficherBilan() {
   const noms = Object.keys(notions).sort();
   const aTravailler = noms.filter(n => notions[n].erreurs.length);
   $("fin-texte").textContent = aTravailler.length
-    ? `Lis bien ton bilan : tu as ${Math.round(duree / 60)} minutes. Il te dit ce que tu dois retravailler et pourquoi tu t'es trompé(e).`
+    ? `Lis bien ton bilan : tu as ${Math.round(duree / 60)} minutes, puis on retourne au cours. Il te dit ce que tu dois retravailler et pourquoi tu t'es trompé(e).`
     : "Bravo, tout est juste ! Tu maîtrises les notions 1 à 4.";
   const acquis = document.createElement("div"); acquis.className = "bilan-acquis";
   noms.forEach(n => {
@@ -861,7 +861,7 @@ function afficherBilan() {
     });
     const uniques = cle => [...new Set(x.erreurs.map(i => cle(S.questions[i])).filter(Boolean))];
     uniques(q => q.rappel).forEach(t => { const p = document.createElement("p"); p.className = "bilan-rappel"; p.innerHTML = "<strong>À retenir :</strong> "; p.append(t); corps.appendChild(p); });
-    { const p = document.createElement("p"); p.className = "bilan-revoir"; p.innerHTML = "<strong>Pour progresser :</strong> après ce bilan, tu feras 4 exercices <strong>nouveaux</strong> sur cette notion, faits pour corriger ces erreurs."; corps.appendChild(p); }
+    { const p = document.createElement("p"); p.className = "bilan-revoir"; p.innerHTML = "<strong>Pour progresser, à la maison :</strong> 4 exercices <strong>nouveaux</strong> sur cette notion t'attendent dans « 🎯 Mes points faibles » (page d'accueil, rubrique Entraînement)."; corps.appendChild(p); }
     art.appendChild(corps); zone.appendChild(art);
   });
   const fin = Date.now() + duree * 1000;
@@ -874,13 +874,13 @@ function afficherBilan() {
     const a = aTravailler.length ? notions[aTravailler[0]].revoir : null;
     zone.innerHTML = "";
     const c = document.createElement("div"); c.className = "carte bilan-finale";
-    c.innerHTML = "<h2>Temps de lecture terminé</h2>";
+    c.innerHTML = "<h2>C'est terminé : retourne au cours</h2><p><strong>Écoute ton professeur, on passe à la suite de la séance.</strong></p>";
     const p = document.createElement("p");
-    p.textContent = aTravailler.length ? "Notions à retravailler : " + aTravailler.map(n => n.split(" · ")[0]).join(", ") + ". Des exercices nouveaux, que tu n'as jamais vus, t'attendent pour chacune : commence par la " + aTravailler[0].split(" · ")[0].toLowerCase() + "." : "Tout est acquis : continue le parcours !";
+    p.textContent = aTravailler.length ? "Notions à retravailler : " + aTravailler.map(n => n.split(" · ")[0]).join(", ") + ". À la maison (ou en classe quand tu as fini ton travail), fais les exercices nouveaux de « 🎯 Mes points faibles », en commençant par la " + aTravailler[0].split(" · ")[0].toLowerCase() + "." : "Tout est acquis, bravo !";
     c.appendChild(p);
     const b = document.createElement("a"); b.className = "bouton plein";
     b.href = a ? `exercices.html?p=ralgo&exo=r${a.module}&faibles=${aTravailler.map(n => notions[n].revoir && "r" + notions[n].revoir.module).filter(Boolean).join(",")}` : "index.html";
-    b.textContent = a ? "🎯 Faire mes exercices de remédiation" : "Retour à l'accueil"; c.appendChild(b);
+    b.className = "bouton"; b.textContent = a ? "🏠 Mes points faibles (pour la maison)" : "Retour à l'accueil"; c.appendChild(b);
     // La remédiation se fait seul, avec son propre identifiant.
     b.addEventListener("click", () => { try { local.ecrire("techno:session", { membres: [{ id: S.eleve.id, code: S.eleve.code, prenom: S.eleve.prenom, classe: S.eleve.classe }] }); } catch {} });
     zone.appendChild(c);

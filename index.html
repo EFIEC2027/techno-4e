@@ -157,6 +157,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 1.8rem 16px 4rem; display: gr
 <script src="algorigrammes.js?v=20261015b"></script>
 <script src="blocs.js?v=20261110a"></script>
 <script src="entrainement.js?v=20261110a"></script>
+<script src="remediation.js?v=20261110b"></script>
 <script src="accueil.js?v=20261110a"></script>
 <script src="objectif.js?v=20261110a"></script>
 <script src="evaluations.js?v=20261110e"></script>
@@ -185,7 +186,8 @@ function majProgression() {
   Accueil.dessiner({ zone: document.querySelector("#app main"), cle: ms.map(m => m.id).sort().join("+"), reussis: Session.reussisEquipe(), tentes: Session.tentesEquipe(), conseils: reg.conseils,
     parcours: [{ nom: "Algorithmes", modules: PARCOURS_ALGO, lien: id => "exercices.html?p=algo&exo=" + id }, { nom: "Programmer un objet", modules: PARCOURS_BLOCS, lien: id => "exercices.html?p=blocs&exo=" + id }],
     entrainement: [{ nom: "Algorithmes", modules: window.PARCOURS_ENTR_ALGO || [], lien: "exercices.html?p=ealgo", lienExo: id => "exercices.html?p=ealgo&exo=" + id },
-                   { nom: "Programmer un objet", modules: window.PARCOURS_ENTR_BLOCS || [], lien: "exercices.html?p=eblocs", lienExo: id => "exercices.html?p=eblocs&exo=" + id }] });
+                   { nom: "Programmer un objet", modules: window.PARCOURS_ENTR_BLOCS || [], lien: "exercices.html?p=eblocs", lienExo: id => "exercices.html?p=eblocs&exo=" + id },
+                   { nom: "🎯 Mes points faibles (après le diagnostic, à la maison)", modules: window.PARCOURS_REMED_ALGO || [], lien: "exercices.html?p=ralgo", lienExo: id => "exercices.html?p=ralgo&exo=" + id }] });
   document.querySelectorAll(".ferme-note").forEach(n => n.remove());
   document.querySelectorAll(".carte:not(.evals) .bouton.plein").forEach(b => { b.style.pointerEvents = reg.ferme ? "none" : ""; b.style.opacity = reg.ferme ? ".45" : ""; });
   if (reg.ferme) document.querySelectorAll(".carte:not(.evals) .boutons").forEach(z => z.insertAdjacentHTML("beforebegin", '<p class="ferme-note" style="margin:0;color:var(--ko);font-weight:700">🔒 Fermé par ton professeur pour le moment. Tu peux aller dans l\'entraînement.</p>'));
