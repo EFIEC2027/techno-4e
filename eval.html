@@ -141,7 +141,9 @@ pre.programme { font-size: 1rem; line-height: 1.6; }
 .bilan-reps { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
 .bilan-pourquoi { margin: 0; padding: .6rem .8rem; background: var(--surligne-doux); border-radius: 8px; font-weight: 600; }
 .bilan-rappel, .bilan-revoir { margin: 0; }
-.bilan-finale { text-align: center; display: grid; gap: .8rem; justify-items: center; }
+.bilan-finale { text-align: center; display: grid; gap: 1rem; justify-items: center; padding: 2rem 1rem; width: 100%; box-sizing: border-box; }
+.bilan-stop { margin: 0; font-family: var(--f-titre); font-size: clamp(2rem, 6vw, 3.4rem); font-weight: 800; line-height: 1.15; color: var(--ko); }
+.bilan-deco { font-size: 1.2rem; padding: .8rem 1.6rem; }
 .cor { background: var(--papier); border: 1px solid var(--trait); border-radius: 12px; overflow: hidden; }
 .cor header { display: flex; justify-content: space-between; gap: 1rem; padding: .6rem 1rem; border-left: 6px solid var(--doux); }
 .cor.plein header { border-left-color: var(--ok); background: var(--ok-doux); }
@@ -864,27 +866,32 @@ function afficherBilan() {
     { const p = document.createElement("p"); p.className = "bilan-revoir"; p.innerHTML = "<strong>Pour progresser, à la maison :</strong> 4 exercices <strong>nouveaux</strong> sur cette notion t'attendent dans « 🎯 Mes points faibles » (page d'accueil, rubrique Entraînement)."; corps.appendChild(p); }
     art.appendChild(corps); zone.appendChild(art);
   });
-  const fin = Date.now() + duree * 1000;
+  // Au moins 3 min de lecture, et jusqu'à 22 min après le début du diagnostic (connexion comprise).
+  const finSeance = S.debut ? S.debut - (S.decalage || 0) + (S.meta.finApres || 22) * 60000 : 0;
+  const fin = Math.max(Date.now() + duree * 1000, finSeance);
+  const faibles = aTravailler.map(n => notions[n].revoir && "r" + notions[n].revoir.module).filter(Boolean).join(",");
+  try { localStorage.setItem("techno:faibles:" + S.eleve.id, faibles); } catch {}
   const tic = () => {
     const reste = Math.max(0, Math.round((fin - Date.now()) / 1000));
-    minuteur.textContent = `⏱ Temps de lecture : ${Math.floor(reste / 60)}:${String(reste % 60).padStart(2, "0")}`;
+    minuteur.textContent = `⏱ Lis ton bilan · fin dans ${Math.floor(reste / 60)}:${String(reste % 60).padStart(2, "0")}`;
     if (reste > 0) return;
     clearInterval(S.bilanTimer);
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    const a = aTravailler.length ? notions[aTravailler[0]].revoir : null;
     zone.innerHTML = "";
-    const c = document.createElement("div"); c.className = "carte bilan-finale";
-    c.innerHTML = "<h2>C'est terminé : retourne au cours</h2><p><strong>Écoute ton professeur, on passe à la suite de la séance.</strong></p>";
-    const p = document.createElement("p");
-    p.textContent = aTravailler.length ? "Notions à retravailler : " + aTravailler.map(n => n.split(" · ")[0]).join(", ") + ". À la maison (ou en classe quand tu as fini ton travail), fais les exercices nouveaux de « 🎯 Mes points faibles », en commençant par la " + aTravailler[0].split(" · ")[0].toLowerCase() + "." : "Tout est acquis, bravo !";
-    c.appendChild(p);
-    const b = document.createElement("a"); b.className = "bouton plein";
-    b.href = a ? `exercices.html?p=ralgo&exo=r${a.module}&faibles=${aTravailler.map(n => notions[n].revoir && "r" + notions[n].revoir.module).filter(Boolean).join(",")}` : "index.html";
-    b.className = "bouton"; b.textContent = a ? "🏠 Mes points faibles (pour la maison)" : "Retour à l'accueil"; c.appendChild(b);
-    // La remédiation se fait seul, avec son propre identifiant.
-    b.addEventListener("click", () => { try { local.ecrire("techno:session", { membres: [{ id: S.eleve.id, code: S.eleve.code, prenom: S.eleve.prenom, classe: S.eleve.classe }] }); } catch {} });
-    zone.appendChild(c);
+    $("fin-titre").textContent = "Diagnostic terminé";
     $("fin-texte").textContent = "Ta copie est enregistrée. Ton professeur voit ton bilan.";
+    const c = document.createElement("div"); c.className = "carte bilan-finale";
+    c.innerHTML = '<p class="bilan-stop">✋ Déconnecte-toi<br>et appelle ton professeur</p>';
+    const b = document.createElement("button"); b.type = "button"; b.className = "bouton plein bilan-deco"; b.textContent = "Se déconnecter";
+    b.addEventListener("click", () => {
+      try { local.suppr("techno:session"); } catch {}
+      c.innerHTML = '<p class="bilan-stop">✋ Tu es déconnecté(e).<br>Lève la main : ton professeur arrive.</p>';
+    });
+    c.appendChild(b);
+    const p = document.createElement("p");
+    p.textContent = aTravailler.length ? "À la maison : page d'accueil → Entraînement → « 🎯 Mes points faibles » (notions " + aTravailler.map(n => n.split(" · ")[0].replace("Notion ", "")).join(", ") + ")." : "Tout est acquis, bravo !";
+    c.appendChild(p);
+    zone.appendChild(c);
   };
   tic(); S.bilanTimer = setInterval(tic, 1000);
 }
