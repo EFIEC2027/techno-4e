@@ -14,13 +14,19 @@
 .logo-efi.grand { width: 150px; height: 150px; border-radius: 20px; margin-bottom: .7rem; }
 .logo-efi.titre { display: inline-block; vertical-align: middle; width: 56px; height: 56px; margin-right: .5rem; }
 </style>
+<style>
+.tour-binome { background: #e7f0fb; color: #1c3a66; border-bottom: 1px solid #c9d9ef; padding: .45rem 16px; font-weight: 700; font-size: .95rem; }
+.tour-binome.change { animation: clignote 1s 3; }
+@keyframes clignote { 50% { background: #f2c230; } }
+@media (prefers-color-scheme: dark) { .tour-binome { background: #1b2a40; color: #cfe0f7; border-color: #2c3f5c; } }
+</style>
 </head>
 <body>
 <div id="app">
   <header class="barre">
     <img class="logo-efi" src="logo-efi.png" alt="EFI Casablanca">
     <div class="marque" id="marque"></div>
-    <nav class="onglets-haut" aria-label="Navigation"><a href="index.html">← Accueil</a><a id="lien-cours" href="cours.html">📖 Cours</a></nav>
+    <nav class="onglets-haut" aria-label="Navigation"><a href="index.html">← Accueil</a><a id="lien-cours" href="cours.html">📖 Cours</a><a id="lien-entr" href="exercices.html?p=eblocs">🏋️ Entraînement</a></nav>
     <div class="jauge" title="Exercices réussis">
       <div class="piste"><div class="rempli" id="jauge" style="width:0%"></div></div>
       <span id="jauge-texte"></span>
@@ -29,6 +35,8 @@
     <div class="eleve"><span id="nom-eleve"></span><small id="classe-eleve"></small>
       <button class="bouton discret" id="b-deconnexion" type="button">Se déconnecter</button></div>
   </header>
+  <div class="bandeau-entr" id="bandeau-entr" hidden><strong>🏋️ Entraînement · pas noté.</strong> Ici, rien ne compte pour la note : c'est juste pour t'exercer, en classe ou à la maison. Recommence autant que tu veux.<div id="conseils" hidden></div></div>
+  <div class="tour-binome" id="tour-binome" hidden></div>
   <div class="corps">
     <nav id="parcours" aria-label="Parcours"></nav>
     <main id="exo">
@@ -74,25 +82,33 @@
 <script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/javascript_compressed.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/msg/fr.js"></script>
 <script src="config.js?v=20261015b"></script>
-<script src="session.js?v=20261110a"></script>
+<script src="session.js?v=20261110b"></script>
 <script src="blocs-moteur.js?v=20261015b"></script>
 <script src="schema.js?v=20261015b"></script>
 <script src="algorigrammes.js?v=20261015b"></script>
-<script src="blocs.js?v=20261015b"></script>
+<script src="blocs.js?v=20261110a"></script>
+<script src="entrainement.js?v=20261110a"></script>
+<script src="commun.js?v=20261110a"></script>
 <script>
 "use strict";
 if (!Session.exiger()) throw new Error("non connecté");
 const $ = id => document.getElementById(id);
-const P = new URLSearchParams(location.search).get("p") === "algo" ? "algo" : "blocs";
-const PARCOURS = P === "algo" ? window.PARCOURS_ALGO : window.PARCOURS_BLOCS;
+const P0 = new URLSearchParams(location.search).get("p") || "";
+const ENTR = P0.startsWith("e");
+const P = P0.replace(/^e/, "") === "algo" ? "algo" : "blocs";
+const PARCOURS = ENTR ? (P === "algo" ? window.PARCOURS_ENTR_ALGO : window.PARCOURS_ENTR_BLOCS) : (P === "algo" ? window.PARCOURS_ALGO : window.PARCOURS_BLOCS);
 const EXOS = PARCOURS.flatMap((m, im) => m.exercices.map((e, ie) => ({ ...e, module: m, num: `${im + 1}.${ie + 1}` })));
 const IDS = new Set(EXOS.map(e => e.id));
 const S = { exo: null, indices: {}, activite: Date.now() };
 let W = Session.travail();
 
 /* ---------- En-tête ---------- */
-document.title = P === "algo" ? "Algorithmes · 4e" : "Programmer un objet · 4e";
-$("marque").innerHTML = P === "algo" ? "Algorithmes <span>4e</span>" : "Programmer <span>un objet</span>";
+document.title = (ENTR ? "Entraînement · " : "") + (P === "algo" ? "Algorithmes · 4e" : "Programmer un objet · 4e");
+$("marque").innerHTML = ENTR ? (P === "algo" ? "Entraînement <span>algorithmes</span>" : "Entraînement <span>programmer</span>") : P === "algo" ? "Algorithmes <span>4e</span>" : "Programmer <span>un objet</span>";
+$("lien-entr").href = ENTR ? "exercices.html?p=" + (P === "algo" ? "eblocs" : "ealgo") : "exercices.html?p=e" + P;
+$("lien-entr").textContent = ENTR ? (P === "algo" ? "🏋️ Entraînement programmer" : "🏋️ Entraînement algorithmes") : "🏋️ Entraînement";
+$("bandeau-entr").hidden = !ENTR;
+if (!ENTR && Session.reglages().ferme) Commun.ferme("exercices.html?p=e" + P);
 $("lien-cours").href = "cours.html#" + P;
 $("lien-cours").textContent = P === "algo" ? "📖 Cours algorithmes" : "📖 Cours programmation";
 $("nom-eleve").textContent = Session.noms();
@@ -422,6 +438,7 @@ function finEssai(exo, reussi, ok, total, erreur, code) {
   W.temps[exo.id] = 0;
   Session.sauverTravail(W);
   dessinerParcours(); majJauge(); majStatut();
+  S.dernier = { exo, reussi };
   return nouveau;
 }
 function verifierSansBlocs() {
@@ -483,8 +500,25 @@ function verifierBlocs() {
 }
 function verifier() {
   if (!S.exo) return;
+  S.dernier = null;
   if (S.exo.type === "blocs") { if (ws) verifierBlocs(); }
   else verifierSansBlocs();
+  if (S.dernier) Commun.aide(S.dernier.exo, S.dernier.reussi, { cours: () => { $("cours").open = true; $("cours").scrollIntoView({ block: "start" }); },
+    entrainement: ENTR ? null : `exercices.html?p=e${P}&exo=${(PARCOURS_ENTR().find(m => m.rappel === S.dernier.exo.module.id) || {}).id || ""}` });
+  majTour();
+}
+function PARCOURS_ENTR() { return (P === "algo" ? window.PARCOURS_ENTR_ALGO : window.PARCOURS_ENTR_BLOCS) || []; }
+/* Binôme : on change de pilote (celui qui tient la souris) tous les 2 exercices réussis. */
+function majTour() {
+  const ms = Session.membres(), z = $("tour-binome");
+  if (ms.length < 2) { z.hidden = true; return; }
+  const n = [...Session.reussisEquipe()].filter(x => IDS.has(x)).length;
+  const pilote = ms[Math.floor(n / 2) % 2];
+  const texte = `⌨️ C'est à ${pilote.prenom || pilote.id} de tenir la souris et le clavier. L'autre lit la consigne et aide. On change tous les 2 exercices réussis.`;
+  if (z.dataset.pilote && z.dataset.pilote !== pilote.id) z.classList.add("change");
+  z.dataset.pilote = pilote.id;
+  z.textContent = texte;
+  z.hidden = false;
 }
 $("b-verifier").addEventListener("click", verifier);
 
@@ -495,7 +529,10 @@ if (!window.Blockly && P === "blocs") {
 dessinerParcours(); majJauge(); majStatut();
 const reussisDepart = Session.reussisEquipe();
 const demande = new URLSearchParams(location.search).get("exo");
-choisir((EXOS.find(e => e.id === demande) || EXOS.find(e => !reussisDepart.has(e.id)) || EXOS[0]).id);
+choisir((EXOS.find(e => e.id === demande) || EXOS.find(e => e.module.id === demande && !reussisDepart.has(e.id)) || EXOS.find(e => e.module.id === demande) || EXOS.find(e => !reussisDepart.has(e.id)) || EXOS[0]).id);
+majTour();
+Commun.conseils($("conseils"), Session.reglages().conseils, EXOS, choisir, Session.reussisEquipe());
+Session.surChangement(() => { if (!ENTR && Session.reglages().ferme) Commun.ferme("exercices.html?p=e" + P); });
 Session.resynchroniser();
 Session.envoyer();
 </script>

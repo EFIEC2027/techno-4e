@@ -444,4 +444,5 @@ ${H([["toujours", [["si", ["capteur", "telecommande"], [["moteur", "moteur", "ou
       ]
     }
   ];
+  window.BLOCS_COMMUNS = { O, H, sans, B: { B1, B2, B3, B4, B5, B6, B7, B8 } };
 })();

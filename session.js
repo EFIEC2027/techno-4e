@@ -88,6 +88,7 @@ window.Session = (function () {
       try {
         const d = await appelGet({ action: "connexion", id: m.id, code: m.code });
         if (!d.ok) return;
+        local.ecrire("techno:reglages", { ferme: !!d.ferme, conseils: d.conseils || [] });
         const p = progression(m.id);
         (d.reussis || []).forEach(x => { if (!p.reussis.includes(x)) p.reussis.push(x); });
         Object.keys(d.codes || {}).forEach(x => { if (!p.tentes.includes(x)) p.tentes.push(x); });
@@ -102,6 +103,7 @@ window.Session = (function () {
     if (DEMO) return { ok: true, eleve: { id, code: "", prenom: id, classe: "démo" } };
     const d = await appelGet({ action: "connexion", id, code: String(code || "").trim() });
     if (!d.ok) return { ok: false };
+    local.ecrire("techno:reglages", { ferme: !!d.ferme, conseils: d.conseils || [] });
     const p = progression(id);
     (d.reussis || []).forEach(x => { if (!p.reussis.includes(x)) p.reussis.push(x); });
     sauverProgression(id, p);
@@ -118,7 +120,8 @@ window.Session = (function () {
   /** Pages d'exercices et de cours : renvoie vers l'accueil si personne n'est connecté. */
   function exiger() { if (!session()) { location.replace("index.html"); return false; } return true; }
 
-  return { DEMO, URL_SERVEUR, local, appelGet, session, membres, noms, cleEquipe, progression, travail, sauverTravail,
+  const reglages = () => local.lire("techno:reglages", { ferme: false, conseils: [] });
+  return { DEMO, URL_SERVEUR, local, reglages, appelGet, session, membres, noms, cleEquipe, progression, travail, sauverTravail,
     reussisEquipe, tentesEquipe, enregistrer, enAttente, envoyer, resynchroniser, connecterUn, ouvrir, quitter, message, exiger,
     surChangement: f => ecouteurs.push(f) };
 })();
