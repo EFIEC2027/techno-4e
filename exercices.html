@@ -19,6 +19,14 @@
 .tour-binome.change { animation: clignote 1s 3; }
 @keyframes clignote { 50% { background: #f2c230; } }
 @media (prefers-color-scheme: dark) { .tour-binome { background: #1b2a40; color: #cfe0f7; border-color: #2c3f5c; } }
+.bandeau-defi { background: #fff7dc; border-color: #e6c35c; color: #3d3313; }
+.defi-regles { margin-top: .4rem; font-size: .95rem; } .defi-regles p { margin: .2rem 0; } .defi-regles ol { margin: .2rem 0 .3rem 1.2rem; padding: 0; }
+.defi-egalite { color: #6b5a1e; font-size: .9rem; }
+.defi-chrono { position: fixed; right: 16px; bottom: 16px; z-index: 60; border-radius: 999px; box-shadow: 0 4px 14px rgba(0,0,0,.25); max-width: calc(100vw - 32px); background: #1f3a6e; color: #fff; font-weight: 800; text-align: center; padding: .6rem 1.1rem; font-variant-numeric: tabular-nums; font-size: 1.05rem; }
+.defi-chrono.bientot { background: #b93d2a; }
+.defi-fin { position: fixed; inset: 0; z-index: 9999; background: rgba(255,255,255,.97); color: #1a1a1a; display: grid; place-items: center; text-align: center; padding: 16px; }
+.defi-fin-titre { font-size: clamp(2.2rem, 7vw, 3.6rem); font-weight: 800; margin: 0 0 .6rem; color: #1f3a6e; }
+.defi-fin-score { font-size: 1.6rem; font-weight: 700; margin: 0 0 .8rem; }
 </style>
 </head>
 <body>
@@ -87,8 +95,9 @@
 <script src="schema.js?v=20261015b"></script>
 <script src="algorigrammes.js?v=20261015b"></script>
 <script src="blocs.js?v=20261110a"></script>
-<script src="entrainement.js?v=20261118b"></script>
+<script src="entrainement.js?v=20261118c"></script>
 <script src="remediation.js?v=20261110b"></script>
+<script src="defi.js?v=20261118a"></script>
 <script src="commun.js?v=20261110a"></script>
 <script src="objectif.js?v=20261110a"></script>
 <script>
@@ -96,10 +105,10 @@
 if (!Session.exiger()) throw new Error("non connecté");
 const $ = id => document.getElementById(id);
 const P0 = new URLSearchParams(location.search).get("p") || "";
-const REMED = P0 === "ralgo";
-const ENTR = P0.startsWith("e") || REMED;
-const P = P0.replace(/^[er]/, "") === "algo" ? "algo" : "blocs";
-const PARCOURS = REMED ? window.PARCOURS_REMED_ALGO : ENTR ? (P === "algo" ? window.PARCOURS_ENTR_ALGO : window.PARCOURS_ENTR_BLOCS) : (P === "algo" ? window.PARCOURS_ALGO : window.PARCOURS_BLOCS);
+const REMED = P0 === "ralgo", DEFI = P0 === "dalgo";
+const ENTR = P0.startsWith("e") || REMED || DEFI;
+const P = P0.replace(/^[erd]/, "") === "algo" ? "algo" : "blocs";
+const PARCOURS = DEFI ? window.PARCOURS_DEFI_ALGO : REMED ? window.PARCOURS_REMED_ALGO : ENTR ? (P === "algo" ? window.PARCOURS_ENTR_ALGO : window.PARCOURS_ENTR_BLOCS) : (P === "algo" ? window.PARCOURS_ALGO : window.PARCOURS_BLOCS);
 const EXOS = PARCOURS.flatMap((m, im) => m.exercices.map((e, ie) => ({ ...e, module: m, num: `${im + 1}.${ie + 1}` })));
 const IDS = new Set(EXOS.map(e => e.id));
 const S = { exo: null, indices: {}, activite: Date.now() };
@@ -141,6 +150,49 @@ if (REMED) {
   try { if (fp !== null) localStorage.setItem("techno:faibles:" + moi, fp); else fp = localStorage.getItem("techno:faibles:" + moi) || ""; } catch { fp = fp || ""; }
   const faibles = fp.split(",").map(id => PARCOURS.findIndex(m => m.id === id)).filter(i => i >= 0);
   $("bandeau-entr").childNodes[1].textContent = (faibles.length ? " Ton diagnostic : tu dois retravailler " + (faibles.length === 1 ? "la notion " + (faibles[0] + 1) : "les notions " + faibles.map(i => i + 1).slice(0, -1).join(", ") + " et " + (faibles[faibles.length - 1] + 1)) + "." : " Choisis la notion que tu veux retravailler.") + " Ce sont des exercices nouveaux, faits pour tes erreurs du diagnostic. Lis le petit cours, puis fais les exercices. Recommence autant que tu veux.";
+}
+if (DEFI) {
+  document.title = "Le défi des algorithmes · 4e";
+  $("marque").innerHTML = "🏆 Le défi <span>des algorithmes</span>";
+  $("lien-entr").href = "exercices.html?p=ealgo"; $("lien-entr").textContent = "🏋️ Entraînement algorithmes";
+  const bd = $("bandeau-entr");
+  bd.classList.add("bandeau-defi");
+  bd.firstChild.textContent = "🏆 Le défi des algorithmes · pas noté.";
+  bd.childNodes[1].textContent = "";
+  const regles = document.createElement("div");
+  regles.className = "defi-regles";
+  regles.innerHTML = `<p><b>Le défi :</b> en binôme, réussissez <b>le plus d'exercices possible en 55 minutes</b>. Le binôme qui en a réussi le plus à la fin gagne.</p>
+<ol><li>Vous choisissez les exercices dans l'ordre que vous voulez, dans les 5 notions.</li>
+<li>Seuls les exercices <b>réussis</b> comptent. Une erreur ne retire pas de point : relisez, réfléchissez, recommencez.</li>
+<li>On <b>change de pilote tous les 2 exercices réussis</b> : celui qui ne tient pas la souris lit la consigne et aide.</li>
+<li>On travaille <b>uniquement avec son binôme</b> : pas de copie sur l'écran des voisins.</li>
+<li>Quand le chrono arrive à 0, <b>mains loin du clavier</b> : le score est figé.</li></ol>
+<p class="defi-egalite">En cas d'égalité : le binôme qui a fait le moins d'erreurs gagne.</p>`;
+  bd.insertBefore(regles, bd.querySelector("#conseils"));
+  // Chronomètre de 55 minutes, démarré à la première ouverture de la page par ce binôme aujourd'hui.
+  const cleDefi = "techno:defi:" + Session.cleEquipe() + ":" + new Date().toISOString().slice(0, 10);
+  let debutDefi = Number(Session.local.lire(cleDefi, 0)) || 0;
+  if (!debutDefi) { debutDefi = Date.now(); Session.local.ecrire(cleDefi, debutDefi); }
+  const DUREE_DEFI = 55 * 60000;
+  const chrono = document.createElement("div"); chrono.className = "defi-chrono"; document.body.prepend(chrono);
+  const score = () => [...Session.reussisEquipe()].filter(x => IDS.has(x)).length;
+  const ex = n => `${n} exercice${n > 1 ? "s" : ""} réussi${n > 1 ? "s" : ""}`;
+  window.DEFI_FINI = false;
+  let tDefi = 0;
+  const tic = () => {
+    const r = Math.max(0, debutDefi + DUREE_DEFI - Date.now()), m = Math.floor(r / 60000), sec = Math.floor(r / 1000) % 60;
+    chrono.textContent = r > 0 ? `🏆 Défi · ⏱ ${m}:${String(sec).padStart(2, "0")} restantes · ${ex(score())}` : `🏁 Temps écoulé · score final : ${ex(score())}`;
+    chrono.classList.toggle("bientot", r > 0 && r < 5 * 60000);
+    if (r === 0 && !window.DEFI_FINI) {
+      window.DEFI_FINI = true; clearInterval(tDefi);
+      const v = document.createElement("div"); v.className = "defi-fin";
+      v.innerHTML = `<div><p class="defi-fin-titre">🏁 Temps écoulé !</p><p class="defi-fin-score"></p><p>Mains loin du clavier : votre professeur annonce le classement.</p><button type="button" class="bouton">Revoir mes exercices</button></div>`;
+      v.querySelector(".defi-fin-score").textContent = `${Session.noms()} : ${ex(score())}`;
+      v.querySelector("button").addEventListener("click", () => v.remove());
+      document.body.appendChild(v);
+    }
+  };
+  tDefi = setInterval(tic, 1000); tic();
 }
 if (!ENTR && Session.reglages().ferme) Commun.ferme("exercices.html?p=e" + P);
 $("lien-cours").href = "cours.html#" + P;
@@ -541,6 +593,7 @@ function verifierBlocs() {
 }
 function verifier() {
   if (!S.exo) return;
+  if (window.DEFI_FINI) return;
   S.dernier = null;
   if (S.exo.type === "blocs") { if (ws) verifierBlocs(); }
   else verifierSansBlocs();

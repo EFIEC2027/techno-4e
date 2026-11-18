@@ -51,7 +51,8 @@
     ["entr-al", "Entraînement algorigrammes", window.PARCOURS_ENTRAINEMENT_ALGO],
     ["entr-algo", "Entraînement algorithmes", window.PARCOURS_ENTR_ALGO],
     ["entr-blocs", "Entraînement programmer", window.PARCOURS_ENTR_BLOCS],
-    ["remed-algo", "Remédiation algorithmes", window.PARCOURS_REMED_ALGO]
+    ["remed-algo", "Remédiation algorithmes", window.PARCOURS_REMED_ALGO],
+    ["defi-algo", "Défi des algorithmes", window.PARCOURS_DEFI_ALGO]
   ].filter(x => Array.isArray(x[2]) && x[2].length);
   ENTR.forEach(([cle, nom, liste]) => {
     LES_PARCOURS[cle] = { nom, liste };
