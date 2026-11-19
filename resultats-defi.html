@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Résultats du défi · 4e</title>
+<link rel="icon" type="image/png" href="logo-efi.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<link rel="stylesheet" href="style.css?v=20261015b">
+<style>
+body { min-height: 100vh; background: var(--fond); }
+.barre .droite { margin-left: auto; }
+.logo-efi { width: 58px; height: 58px; border-radius: 10px; flex-shrink: 0; display: block; }
+main { max-width: 980px; margin: 0 auto; padding: 1.4rem 16px 4rem; display: grid; gap: 1.1rem; }
+h1 { font-size: clamp(1.6rem, 4.5vw, 2.3rem); font-weight: 800; margin: 0; }
+.sous { color: var(--doux); margin: .2rem 0 0; }
+.carte { background: var(--papier); border: 1px solid var(--trait); border-radius: 12px; padding: 1.1rem 1.2rem; }
+.moi { border: 2px solid #e6c35c; background: linear-gradient(180deg, #fff7dc, var(--papier) 70%); }
+.moi h2 { margin: 0 0 .3rem; font-size: 1.35rem; }
+.chiffres { display: flex; flex-wrap: wrap; gap: .7rem; margin: .6rem 0 .8rem; }
+.chiffre { background: var(--papier); border: 1px solid var(--trait); border-radius: 10px; padding: .55rem .9rem; min-width: 120px; }
+.chiffre b { display: block; font-family: var(--f-titre); font-size: 1.7rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.chiffre span { color: var(--doux); font-size: .88rem; }
+.notions { display: grid; gap: .45rem; }
+.notion { display: grid; grid-template-columns: minmax(130px, 220px) 1fr 60px; gap: .6rem; align-items: center; font-size: .95rem; }
+.barre-n { height: 12px; border-radius: 99px; background: var(--trait); overflow: hidden; }
+.barre-n i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+.notion .val { text-align: right; font-variant-numeric: tabular-nums; color: var(--doux); }
+.conseil { margin: .8rem 0 0; padding: .6rem .8rem; border-left: 4px solid var(--accent); background: var(--surligne-doux); border-radius: 0 8px 8px 0; }
+.conseil a { color: var(--accent); font-weight: 700; }
+.podium { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .7rem; }
+.marche { text-align: center; padding: .9rem; border-radius: 12px; border: 1px solid var(--trait); background: var(--papier); }
+.marche .med { font-size: 2rem; }
+.marche .noms { font-weight: 800; margin: .2rem 0; }
+.marche .sc { color: var(--doux); }
+.tableau-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+th, td { padding: .5rem .6rem; border-bottom: 1px solid var(--trait); text-align: left; white-space: nowrap; }
+th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--doux); }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr.a-moi td { background: #fff4cc; font-weight: 700; }
+.vide { color: var(--doux); }
+.erreur { color: var(--ko); font-weight: 700; }
+.actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+@media (prefers-color-scheme: dark) {
+  .moi { border-color: #8a7330; background: linear-gradient(180deg, #2e2817, var(--papier) 70%); }
+  tr.a-moi td { background: #3b3420; }
+}
+@media print { .barre, .actions { display: none; } main { padding: 0; } .carte { break-inside: avoid; } }
+@media (max-width: 560px) { .notion { grid-template-columns: 1fr 50px; } .notion .barre-n { grid-column: 1 / -1; grid-row: 2; } }
+</style>
+</head>
+<body>
+<header class="barre">
+  <img class="logo-efi" src="logo-efi.png" alt="EFI Casablanca">
+  <div class="marque">Résultats <span>du défi</span></div>
+  <nav class="onglets-haut droite" aria-label="Navigation" id="nav"><a href="index.html">← Accueil</a><a href="exercices.html?p=ealgo">🏋️ Entraînement</a></nav>
+</header>
+<main id="zone">
+  <div><h1>🏆 Le défi des algorithmes</h1><p class="sous" id="sous">Chargement des résultats…</p></div>
+  <div id="contenu" style="display:grid;gap:1.1rem"></div>
+</main>
+<script src="config.js"></script>
+<script src="session.js?v=20261110c"></script>
+<script src="defi.js?v=20261118a"></script>
+<script>
+"use strict";
+const PROF = new URLSearchParams(location.search).has("prof");
+const zone = document.getElementById("zone"), sous = document.getElementById("sous");
+const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const NOTIONS = (window.PARCOURS_DEFI_ALGO || []).map(m => ({ titre: m.titre, n: m.exercices.length }));
+const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? "s" : ""}`;
+const lesNoms = l => l.length > 1 ? l.slice(0, -1).join(", ") + " et " + l[l.length - 1] : l.join("");
+const med = r => r === 1 ? "🥇" : r === 2 ? "🥈" : r === 3 ? "🥉" : "";
+
+function cleProf() { try { return localStorage.getItem("techno4e:cle") || sessionStorage.getItem("techno4e:cle"); } catch { return null; } }
+
+async function charger() {
+  let params;
+  if (PROF) {
+    const cle = cleProf();
+    if (!cle) { sous.innerHTML = 'Connectez-vous d\'abord à votre <a href="prof.html">tableau de suivi</a>, puis revenez ici.'; return; }
+    params = { action: "resultatsDefi", cle };
+    document.getElementById("nav").innerHTML = '<a href="prof.html">← Tableau de suivi</a>';
+  } else {
+    if (!Session.exiger()) return;
+    const m = Session.membres()[0];
+    params = { action: "resultatsDefi", id: m.id, code: m.code };
+  }
+  try {
+    const d = await Session.appelGet(params);
+    if (!d.ok) throw new Error(d.erreur === "action inconnue" ? "Les résultats ne sont pas encore disponibles (script du professeur à mettre à jour)." : d.erreur === "mot_de_passe" ? "Mot de passe expiré : reconnectez-vous au tableau de suivi." : "Chargement impossible.");
+    dessiner(d);
+  } catch (e) { sous.innerHTML = `<span class="erreur">${esc(e.message === "Failed to fetch" ? "Connexion impossible. Vérifiez Internet." : e.message)}</span>`; }
+}
+
+function barres(parNotion) {
+  return `<div class="notions">${NOTIONS.map((no, i) => {
+    const v = parNotion[i] || 0, pct = Math.round(v / no.n * 100);
+    return `<div class="notion"><span>${i + 1}. ${esc(no.titre)}</span><div class="barre-n" role="img" aria-label="${v} sur ${no.n}"><i style="width:${pct}%"></i></div><span class="val">${v} / ${no.n}</span></div>`;
+  }).join("")}</div>`;
+}
+
+function dessiner(d) {
+  const eq = d.equipes;
+  const total = d.total || 65;
+  const maj = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  if (!eq.length) { sous.textContent = "Aucun binôme n'a encore participé au défi. " + maj; return; }
+  sous.textContent = `${PROF ? "Synthèse professeur" : "Classe " + (d.classe || "")} · ${pluriel(eq.length, "binôme")} · ${maj}`;
+  let html = "";
+  const moi = eq.find(x => x.moi);
+  if (moi) {
+    // Notion la plus faible (en proportion) pour orienter le travail.
+    const taux = NOTIONS.map((no, i) => ({ i, t: (moi.parNotion[i] || 0) / no.n }));
+    const faible = taux.slice().sort((a, b) => a.t - b.t)[0];
+    html += `<section class="carte moi"><h2>${med(moi.rang)} Votre binôme : ${esc(lesNoms(moi.noms))}</h2>
+      <div class="chiffres">
+        <div class="chiffre"><b>${moi.rang}<small style="font-size:1rem">${moi.rang === 1 ? "er" : "e"}</small></b><span>sur ${pluriel(eq.length, "binôme")}</span></div>
+        <div class="chiffre"><b>${moi.score}</b><span>exercices réussis sur ${total}</span></div>
+        <div class="chiffre"><b>${moi.erreurs}</b><span>${moi.erreurs > 1 ? "erreurs" : "erreur"}</span></div>
+        <div class="chiffre"><b>${moi.sorties || 0}</b><span>sortie${(moi.sorties || 0) > 1 ? "s" : ""} du défi</span></div>
+      </div>
+      ${barres(moi.parNotion)}
+      ${faible && faible.t < 1 ? `<p class="conseil">À retravailler en priorité : <b>${faible.i + 1}. ${esc(NOTIONS[faible.i].titre)}</b>. <a href="exercices.html?p=ealgo">Aller à l'entraînement →</a></p>` : `<p class="conseil">Bravo, toutes les notions sont réussies !</p>`}
+    </section>`;
+  }
+  const top = eq.filter(x => x.rang <= 3);
+  if (top.length) html += `<section class="carte"><h2 style="margin-top:0">Le podium</h2><div class="podium">${top.map(x => `<div class="marche"><div class="med">${med(x.rang)}</div><div class="noms">${esc(lesNoms(x.noms))}</div><div class="sc">${pluriel(x.score, "exercice")} réussi${x.score > 1 ? "s" : ""} · ${pluriel(x.erreurs, "erreur")}</div></div>`).join("")}</div></section>`;
+  // Classement complet
+  const cols = PROF
+    ? ["Rang", "Binôme", "Classe", "Réussis", "Erreurs", "Sorties", "Durée", ...NOTIONS.map((n, i) => "N" + (i + 1)), "Date"]
+    : ["Rang", "Binôme", "Réussis", "Erreurs"];
+  html += `<section class="carte"><h2 style="margin-top:0">Le classement</h2><p class="sous" style="margin-bottom:.6rem">Classés par nombre d'exercices réussis ; en cas d'égalité, le moins d'erreurs passe devant.${PROF ? " N1 à N5 : exercices réussis dans chaque notion." : ""}</p><div class="tableau-wrap"><table><thead><tr>${cols.map((c, i) => `<th class="${i === 0 || i > 2 ? "n" : ""}">${c}</th>`).join("")}</tr></thead><tbody>${eq.map(x => {
+    const base = `<td class="n">${med(x.rang)} ${x.rang}</td><td>${esc(lesNoms(x.noms))}</td>`;
+    return PROF
+      ? `<tr>${base}<td>${esc(x.classe)}</td><td class="n"><b>${x.score}</b> / ${total}</td><td class="n">${x.erreurs}</td><td class="n">${x.sorties || 0}</td><td class="n">${x.minutes || 0} min</td>${NOTIONS.map((n, i) => `<td class="n">${x.parNotion[i] || 0}/${n.n}</td>`).join("")}<td class="n">${new Date(x.date).toLocaleDateString("fr-FR")}</td></tr>`
+      : `<tr class="${x.moi ? "a-moi" : ""}">${base}<td class="n"><b>${x.score}</b> / ${total}</td><td class="n">${x.erreurs}</td></tr>`;
+  }).join("")}</tbody></table></div></section>`;
+  if (PROF) {
+    // Réussite moyenne de la classe par notion
+    const moy = NOTIONS.map((n, i) => eq.reduce((s, x) => s + (x.parNotion[i] || 0), 0) / eq.length);
+    const moyScore = eq.reduce((s, x) => s + x.score, 0) / eq.length;
+    html += `<section class="carte"><h2 style="margin-top:0">Bilan de la classe</h2>
+      <div class="chiffres"><div class="chiffre"><b>${moyScore.toFixed(1).replace(".", ",")}</b><span>exercices réussis en moyenne</span></div><div class="chiffre"><b>${Math.max(...eq.map(x => x.score))}</b><span>meilleur score</span></div><div class="chiffre"><b>${eq.reduce((s, x) => s + (x.sorties || 0), 0)}</b><span>sorties au total</span></div></div>
+      <p class="sous" style="margin:.2rem 0 .5rem">Exercices réussis en moyenne par binôme, dans chaque notion :</p>
+      ${barres(moy.map(v => Math.round(v * 10) / 10))}</section>`;
+    html += `<div class="actions"><button class="bouton plein" type="button" onclick="print()">Imprimer / PDF</button><button class="bouton" type="button" onclick="charger()">Actualiser</button></div>`;
+  }
+  document.getElementById("contenu").innerHTML = html;
+}
+charger();
+</script>
+</body>
+</html>

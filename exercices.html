@@ -194,7 +194,7 @@ if (DEFI) {
     if (r === 0 && !window.DEFI_FINI) {
       window.DEFI_FINI = true; clearInterval(tDefi); window.dispatchEvent(new Event("defi-fini"));
       const v = document.createElement("div"); v.className = "defi-fin";
-      v.innerHTML = `<div><p class="defi-fin-titre">${arrete ? "🛑 Défi terminé" : "🏁 Temps écoulé !"}</p>${arrete ? "<p class=\"grand\">Vous êtes sortis du défi 3 fois : le défi s'arrête et votre score est figé.</p>" : ""}<p class="defi-fin-score"></p><p>Mains loin du clavier : votre professeur annonce le classement.</p><button type="button" class="bouton">Revoir mes exercices</button></div>`;
+      v.innerHTML = `<div><p class="defi-fin-titre">${arrete ? "🛑 Défi terminé" : "🏁 Temps écoulé !"}</p>${arrete ? "<p class=\"grand\">Vous êtes sortis du défi 3 fois : le défi s'arrête et votre score est figé.</p>" : ""}<p class="defi-fin-score"></p><p>Mains loin du clavier : votre professeur annonce le classement.</p><a class="bouton plein" href="resultats-defi.html" style="margin-right:.5rem">🏆 Voir les résultats</a><button type="button" class="bouton">Revoir mes exercices</button></div>`;
       v.querySelector(".defi-fin-score").textContent = `${Session.noms()} : ${ex(score())}`;
       v.querySelector("button").addEventListener("click", () => v.remove());
       document.body.appendChild(v);
