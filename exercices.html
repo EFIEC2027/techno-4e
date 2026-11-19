@@ -177,20 +177,24 @@ if (DEFI) {
   const cleDefi = "techno:defi:" + Session.cleEquipe() + ":" + new Date().toISOString().slice(0, 10);
   let debutDefi = Number(Session.local.lire(cleDefi, 0)) || 0;
   if (!debutDefi) { debutDefi = Date.now(); Session.local.ecrire(cleDefi, debutDefi); }
-  const DUREE_DEFI = 55 * 60000;
+  const DUREE_DEFI = 55 * 60000, MAX_DEBLOCAGES = 3;
+  // Au 3e déblocage, le défi s'arrête pour ce binôme : le score est figé.
+  const cleNbDeb = cleDefi.replace("techno:defi:", "techno:defi-deb:");
+  const nbDeblocages = () => Number(Session.local.lire(cleNbDeb, 0)) || 0;
   const chrono = document.createElement("div"); chrono.className = "defi-chrono"; document.body.prepend(chrono);
   const score = () => [...Session.reussisEquipe()].filter(x => IDS.has(x)).length;
   const ex = n => `${n} exercice${n > 1 ? "s" : ""} réussi${n > 1 ? "s" : ""}`;
   window.DEFI_FINI = false;
   let tDefi = 0;
   const tic = () => {
-    const r = Math.max(0, debutDefi + DUREE_DEFI - Date.now()), m = Math.floor(r / 60000), sec = Math.floor(r / 1000) % 60;
-    chrono.textContent = r > 0 ? `🏆 Défi · ⏱ ${m}:${String(sec).padStart(2, "0")} restantes · ${ex(score())}` : `🏁 Temps écoulé · score final : ${ex(score())}`;
+    const arrete = nbDeblocages() >= MAX_DEBLOCAGES;
+    const r = arrete ? 0 : Math.max(0, debutDefi + DUREE_DEFI - Date.now()), m = Math.floor(r / 60000), sec = Math.floor(r / 1000) % 60;
+    chrono.textContent = r > 0 ? `🏆 Défi · ⏱ ${m}:${String(sec).padStart(2, "0")} restantes · ${ex(score())}` : `🏁 ${arrete ? "Défi arrêté" : "Temps écoulé"} · score final : ${ex(score())}`;
     chrono.classList.toggle("bientot", r > 0 && r < 5 * 60000);
     if (r === 0 && !window.DEFI_FINI) {
       window.DEFI_FINI = true; clearInterval(tDefi); window.dispatchEvent(new Event("defi-fini"));
       const v = document.createElement("div"); v.className = "defi-fin";
-      v.innerHTML = `<div><p class="defi-fin-titre">🏁 Temps écoulé !</p><p class="defi-fin-score"></p><p>Mains loin du clavier : votre professeur annonce le classement.</p><button type="button" class="bouton">Revoir mes exercices</button></div>`;
+      v.innerHTML = `<div><p class="defi-fin-titre">${arrete ? "🛑 Défi terminé" : "🏁 Temps écoulé !"}</p>${arrete ? "<p class=\"grand\">Vous êtes sortis du défi 3 fois : le défi s'arrête et votre score est figé.</p>" : ""}<p class="defi-fin-score"></p><p>Mains loin du clavier : votre professeur annonce le classement.</p><button type="button" class="bouton">Revoir mes exercices</button></div>`;
       v.querySelector(".defi-fin-score").textContent = `${Session.noms()} : ${ex(score())}`;
       v.querySelector("button").addEventListener("click", () => v.remove());
       document.body.appendChild(v);
@@ -252,10 +256,12 @@ if (DEFI) {
     D.verrouille = true; D.actif = true; masquerNav(true);
     try { localStorage.setItem(cleVerrou, "1"); } catch {}
     const heure = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-    voile.innerHTML = `<div class="carte"><h1 style="color:#b93d2a">🔒 Défi bloqué</h1><p class="grand">Vous avez quitté le défi à ${heure}${raison ? " (" + raison + ")" : ""}. Levez la main : le professeur va débloquer votre poste depuis son tableau de bord.</p><p class="doux">Vos exercices réussis sont gardés. Le chrono continue. Ne fermez pas cette page.</p><p class="doux" id="defi-attente">En attente du professeur…</p><button type="button" class="bouton plein" id="b-defi-rep" hidden>Reprendre le défi (plein écran)</button></div>`;
+    voile.innerHTML = `<div class="carte"><h1 style="color:#b93d2a">🔒 Défi bloqué</h1><p class="grand">Vous avez quitté le défi à ${heure}${raison ? " (" + raison + ")" : ""}. Levez la main : le professeur va débloquer votre poste depuis son tableau de bord.</p><p class="doux">Vos exercices réussis sont gardés. Le chrono continue. Ne fermez pas cette page.</p><p class="grand" style="color:#b93d2a"><b>Déblocage ${Math.min(nbDeblocages() + 1, MAX_DEBLOCAGES)} sur ${MAX_DEBLOCAGES}.</b> ${nbDeblocages() + 1 >= MAX_DEBLOCAGES ? "Au prochain déblocage, le défi s'arrête : votre score est figé et vous ne pouvez plus gagner de points." : "Au 3e déblocage, le défi s'arrête et votre score est figé."}</p><p class="doux" id="defi-attente">En attente du professeur…</p><button type="button" class="bouton plein" id="b-defi-rep" hidden>Reprendre le défi (plein écran)</button></div>`;
     voile.hidden = false;
     const b = voile.querySelector("#b-defi-rep");
     b.addEventListener("click", async () => {
+      const n = nbDeblocages() + 1; Session.local.ecrire(cleNbDeb, n);
+      if (n >= MAX_DEBLOCAGES) { D.verrouille = false; try { localStorage.removeItem(cleVerrou); } catch {} voile.hidden = true; tic(); return; }
       D.ignorer = Date.now() + 2500;
       const ok = await pleinEcran();
       D.verrouille = false; D.ignorer = Date.now() + 1500;
@@ -278,7 +284,8 @@ if (DEFI) {
           if (d && d.erreur === "action") { voile.querySelector("#defi-attente").textContent = "Le script Google du professeur n'est pas à jour."; return; }
           if (d && d.ok && !d.verrouille) {
             clearInterval(minuterie);
-            voile.querySelector("#defi-attente").textContent = "Le professeur vous a débloqués. Cliquez pour reprendre.";
+            voile.querySelector("#defi-attente").textContent = nbDeblocages() + 1 >= MAX_DEBLOCAGES ? "Le professeur vous a débloqués pour la 3e fois : le défi est terminé." : "Le professeur vous a débloqués. Cliquez pour reprendre.";
+            if (nbDeblocages() + 1 >= MAX_DEBLOCAGES) b.textContent = "Voir notre score final";
             b.hidden = false;
           }
         } catch {}
