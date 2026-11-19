@@ -297,9 +297,8 @@ pre.programme { font-size: 1rem; line-height: 1.6; }
     <h1 id="v-titre">Évaluation bloquée</h1>
     <p class="grand" id="v-texte">Tu as quitté la page de l'évaluation. Lève la main : ton professeur doit venir débloquer ton poste.</p>
     <p class="doux">Tes réponses sont conservées. Le temps continue de s'écouler.</p>
-    <div class="champ"><label for="v-code">Code du professeur</label><input id="v-code" type="password" autocomplete="off" inputmode="numeric"></div>
-    <div class="erreur" id="v-erreur" hidden></div>
-    <button class="bouton plein" id="b-debloquer" type="button">Débloquer</button>
+    <p class="doux" id="v-attente">Ton professeur va te débloquer depuis son tableau de bord. Ne ferme pas cette page.</p>
+    <button class="bouton plein" id="b-reprendre" type="button" hidden>Reprendre (plein écran)</button>
   </div>
 </div>
 
@@ -506,6 +505,7 @@ async function charger() {
     S.file = l.file || [];
     S.reprise = !!S.debut;
     S.verrouille = !!d.eval.verrouille;
+    S.incidentsServeur = Number(d.eval.incidents) || 0; S.incidentsLocaux = S.incidentsServeur;
     consignes();
   } catch (e) {
     err.textContent = "Connexion impossible. Vérifie l'accès à Internet puis réessaie.";
@@ -704,6 +704,7 @@ function tic() {
 const NOMS_INCIDENTS = { onglet: "changement d'onglet ou de fenêtre", fenetre: "sortie de la fenêtre", plein_ecran: "sortie du plein écran", reprise: "page rechargée ou rouverte" };
 function incident(type, force) {
   if (!S.actif || S.termine || S.verrouille || (!force && Date.now() < S.ignorerJusqua)) return;
+  S.incidentsLocaux = (S.incidentsLocaux || 0) + 1;
   evenement("incident", { type, question: S.actuelle + 1 });
   verrouiller(type);
 }
@@ -714,9 +715,10 @@ function verrouiller(type, depuisServeur) {
   $("v-texte").textContent = depuisServeur
     ? "Ton évaluation a été bloquée. Lève la main : ton professeur doit venir débloquer ton poste."
     : `Tu as quitté l'évaluation à ${heure} (${NOMS_INCIDENTS[type] || type}). Lève la main : ton professeur doit venir débloquer ton poste.`;
-  $("v-code").value = "";
-  $("v-erreur").hidden = true;
+  $("b-reprendre").hidden = true;
+  $("v-attente").textContent = "Ton professeur va te débloquer depuis son tableau de bord. Ne ferme pas cette page.";
   $("verrou").hidden = false;
+  attendreDeblocage();
 }
 document.addEventListener("visibilitychange", () => { if (document.hidden) incident("onglet"); });
 window.addEventListener("blur", () => setTimeout(() => { if (!document.hasFocus()) incident(document.hidden ? "onglet" : "fenetre"); }, 300));
@@ -731,24 +733,31 @@ document.addEventListener("keydown", e => {
   }
 }, true);
 
-$("b-debloquer").addEventListener("click", async () => {
+/* Déblocage à distance : le professeur débloque depuis son tableau de bord (aucun code n'est tapé sur le poste). */
+let minuterieDeblocage = null;
+function attendreDeblocage() {
+  clearInterval(minuterieDeblocage);
+  minuterieDeblocage = setInterval(async () => {
+    if (!S.verrouille || S.termine) { clearInterval(minuterieDeblocage); return; }
+    try {
+      const d = await appelGet({ action: "evalEtat", id: S.eleve.id, code: S.eleve.code });
+      const e = d && d.eval;
+      // On attend que la sortie ait bien été enregistrée sur le serveur, puis que le professeur ait débloqué.
+      if (e && (Number(e.incidents) || 0) >= (S.incidentsLocaux || 0) && !e.verrouille) {
+        clearInterval(minuterieDeblocage);
+        $("v-attente").textContent = "Ton professeur t'a débloqué(e). Clique pour reprendre.";
+        $("b-reprendre").hidden = false;
+      }
+    } catch {}
+  }, 4000);
+}
+$("b-reprendre").addEventListener("click", async () => {
   S.ignorerJusqua = Date.now() + 2500;
-  await pleinEcran();
-  const cle = $("v-code").value.trim();
-  $("v-erreur").hidden = true;
-  $("b-debloquer").disabled = true;
-  try {
-    const d = await appelPost({ action: "debloquer", id: S.eleve.id, code: S.eleve.code, evaluation: S.meta.id, cle });
-    if (!d.ok) throw new Error(d.erreur);
-    S.verrouille = false;
-    S.ignorerJusqua = Date.now() + 1500;
-    $("verrou").hidden = true;
-    if (!document.fullscreenElement) { const ok = await pleinEcran(); if (!ok) verrouiller("plein_ecran"); }
-  } catch (e) {
-    $("v-erreur").textContent = e.message === "code_prof" ? "Code incorrect." : "Vérification impossible : connexion Internet ?";
-    $("v-erreur").hidden = false;
-  }
-  $("b-debloquer").disabled = false;
+  const ok = await pleinEcran();
+  S.verrouille = false;
+  S.ignorerJusqua = Date.now() + 1500;
+  $("verrou").hidden = true;
+  if (!ok && !document.fullscreenElement) verrouiller("plein_ecran");
 });
 
 /* ---------- Rendu et correction ---------- */

@@ -88,7 +88,7 @@
   <div class="direct-grille" id="direct-grille"></div>
 </section>
 <section class="vue" id="vue-pilotage" hidden>
-  <div class="panneau"><h2>Évaluations</h2><p class="sous">Ouvrez une évaluation (ou la mission) pour une classe, avec une fermeture automatique à l'heure de fin du cours. Le code de déblocage se définit toujours dans la Google Sheet.</p><div id="pil-evals"></div></div>
+  <div class="panneau"><h2>Évaluations</h2><p class="sous">Ouvrez une évaluation (ou la mission) pour une classe, avec une fermeture automatique à l'heure de fin du cours. Un élève qui sort est bloqué : il apparaît en haut de cette page avec un bouton « Débloquer ».</p><div id="pil-evals"></div></div>
   <div class="panneau"><h2>Accès aux exercices de classe</h2><p class="sous">Fermés, les élèves voient un message et peuvent seulement utiliser l'entraînement (toujours ouvert).</p><div id="pil-acces"></div></div>
   <div class="panneau"><h2>Entraînement conseillé</h2><p class="sous">Choisissez des exercices à conseiller à une classe, avec une date. Les élèves les voient sur leur accueil et dans l'entraînement ; vous voyez qui les a faits.</p><div id="pil-conseils"></div></div>
   <div class="panneau"><h2>Bilan de séance</h2><p class="sous">Un résumé prêt à coller dans le cahier de textes ou à transmettre.</p>

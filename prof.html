@@ -157,6 +157,8 @@ select#choix-eleve { border: 1.5px solid var(--trait); border-radius: 8px; paddi
 </style>
 <link rel="icon" type="image/png" href="logo-efi.png">
 <style>
+#bloques { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; padding: .7rem 1rem; background: #fdecea; border-bottom: 2px solid #b93d2a; }
+#bloques.calme { background: #e3f4ea; border-bottom-color: #1d7a46; }
 .logo-efi { width: 58px; height: 58px; border-radius: 10px; flex-shrink: 0; display: block; }
 .logo-efi.grand { width: 150px; height: 150px; border-radius: 20px; margin-bottom: .7rem; }
 .logo-efi.titre { display: inline-block; vertical-align: middle; width: 56px; height: 56px; margin-right: .5rem; }
@@ -199,6 +201,8 @@ select#choix-eleve { border: 1.5px solid var(--trait); border-radius: 8px; paddi
     </nav>
   </header>
   <div class="bandeau-demo" id="bandeau-demo" hidden>Données fictives : le site n'est pas encore relié à la Google Sheet. Ce tableau montre à quoi ressembleront vos statistiques.</div>
+
+  <div id="bloques" hidden></div>
 
   <main>
     <!-- Vue d'ensemble -->
@@ -443,6 +447,7 @@ async function charger() {
       definirParcours(nb > na ? "blocs" : "algo");
     }
     $("maj").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    try { dessinerBloques(); } catch (e) { console.error(e); }
     dessinerFiltres();
     toutDessiner();
   } catch (e) {
@@ -479,6 +484,51 @@ function ouvrir() {
   charger();
 }
 $("b-actualiser").addEventListener("click", charger);
+
+/* ---------- Élèves bloqués (évaluation ou défi) : déblocage depuis le tableau de bord, aucun code tapé sur le poste élève ---------- */
+const NOM_EV_BLOQUE = ev => ev === "defi-algo" ? "du défi (avec son binôme)" : "de l'évaluation";
+function elevesBloques() {
+  const lignes = (BRUT && BRUT.evaluations && BRUT.evaluations.lignes) || [], st = {};
+  lignes.forEach(([t, id, ev, type]) => {
+    const k = id + "|" + ev, x = st[k] || (st[k] = { id, ev, inc: 0, deb: 0, rendu: false });
+    if (type === "incident") x.inc = Math.max(x.inc, t); else if (type === "deblocage") x.deb = Math.max(x.deb, t); else if (type === "rendu") x.rendu = true;
+  });
+  const parId = Object.fromEntries(((BRUT && BRUT.eleves) || []).map(e => [e.id, e]));
+  // Défi : on ne garde que les blocages des 2 dernières heures.
+  return Object.values(st).filter(x => !x.rendu && x.inc > x.deb && parId[x.id] && (x.ev !== "defi-algo" || Date.now() - x.inc < 2 * 3600000)).map(x => ({ ...x, e: parId[x.id] }));
+}
+function defiEnCours() {
+  const lignes = (BRUT && BRUT.evaluations && BRUT.evaluations.lignes) || [];
+  return lignes.some(([t, , ev]) => ev === "defi-algo" && Date.now() - t < 70 * 60000);
+}
+function dessinerBloques() {
+  const z = $("bloques"), l = elevesBloques();
+  const ouvertes = Object.keys((BRUT && BRUT.evaluations && BRUT.evaluations.ouvertes) || {});
+  const actif = ouvertes.length || defiEnCours();
+  z.classList.toggle("calme", !l.length);
+  z.hidden = !l.length && !actif;
+  if (!l.length) { z.innerHTML = actif ? `🔓 <strong>${ouvertes.length ? "Évaluation ouverte (" + ouvertes.join(", ") + ")" : "Défi en cours"} : aucun élève bloqué.</strong> Si un élève sort, il apparaît ici avec un bouton « Débloquer » (mise à jour toutes les 15 s).` : ""; return; }
+  z.innerHTML = `<strong>🔒 ${l.length} poste${l.length > 1 ? "s" : ""} bloqué${l.length > 1 ? "s" : ""} :</strong>`;
+  l.sort((a, b) => a.inc - b.inc).forEach(x => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "bouton plein";
+    b.textContent = `Débloquer ${[x.e.prenom, x.e.nom].filter(Boolean).join(" ") || x.id} (${x.e.classe}) · sorti ${NOM_EV_BLOQUE(x.ev)} à ${new Date(x.inc).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+    b.addEventListener("click", () => debloquerEleve(x.id, x.ev, b));
+    z.appendChild(b);
+  });
+}
+async function debloquerEleve(id, ev, bouton) {
+  if (DEMO) { alert("Mode démonstration : rien n'est envoyé."); return; }
+  if (bouton) { bouton.disabled = true; bouton.textContent = "Déblocage…"; }
+  try {
+    const r = await fetch(URL_SERVEUR, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "prof", cle: CLE, op: "debloquer", id, evaluation: ev }) });
+    const d = await r.json();
+    if (!d.ok) alert(d.erreur === "operation" ? "Votre script Google n'est pas à jour : recollez Code.gs et déployez une nouvelle version." : "Déblocage impossible : " + d.erreur);
+  } catch { alert("Connexion impossible."); }
+  await charger();
+}
+// Pendant une évaluation ouverte ou un défi en cours, la liste des postes bloqués se met à jour toutes les 15 secondes.
+setInterval(() => { if (!document.hidden && BRUT && !DEMO && (Object.keys((BRUT.evaluations && BRUT.evaluations.ouvertes) || {}).length || defiEnCours())) charger(); }, 15000);
 setInterval(() => { if (!document.hidden && BRUT && $("vue-evaluation").hidden) charger(); }, 5 * 60000);
 setInterval(() => { if (!document.hidden && BRUT && !$("vue-evaluation").hidden && !DEMO) charger(); }, 30000);
 
@@ -983,7 +1033,8 @@ function dessinerEvaluation(liste) {
     { cle: "nom", titre: "Élève", classe: "nom", sensDefaut: "asc", valeur: x => (x.s.nom + " " + x.s.prenom).toLowerCase(),
       rendu: (td, x) => { td.textContent = nomComplet(x.s); const sm = document.createElement("small"); sm.textContent = x.s.classe; td.appendChild(sm); } },
     { cle: "statut", titre: "Statut", sensDefaut: "asc", valeur: x => ordreStatut[x.statut],
-      rendu: (td, x) => { const [c, l] = libStatut[x.statut]; td.innerHTML = `<span class="etat ${c}"></span>`; td.firstChild.textContent = l + (x.rendu && x.rendu.auto ? " (temps écoulé)" : ""); } },
+      rendu: (td, x) => { const [c, l] = libStatut[x.statut]; td.innerHTML = `<span class="etat ${c}"></span>`; td.firstChild.textContent = l + (x.rendu && x.rendu.auto ? " (temps écoulé)" : "");
+        if (x.statut === "bloque") { const b = document.createElement("button"); b.type = "button"; b.className = "bouton plein"; b.style.cssText = "margin-left:.4rem;padding:.2rem .6rem;font-size:.85rem"; b.textContent = "Débloquer"; b.addEventListener("click", ev => { ev.stopPropagation(); debloquerEleve(x.s.id, meta.id, b); }); td.appendChild(b); } } },
     { cle: "incidents", titre: "Incidents", valeur: x => x.incidents.length,
       rendu: (td, x) => { td.textContent = x.incidents.length || ""; td.title = x.incidents.map(i => `${dateHeure(i.t)} : ${NOMS_INCIDENTS[i.type] || i.type}`).join("\n"); if (x.incidents.length) td.style.color = "var(--ko)"; td.style.fontWeight = "700"; } },
     { cle: "note", titre: "Note / 20", valeur: x => noteSur20(x.rendu),

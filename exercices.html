@@ -212,33 +212,78 @@ if (DEFI) {
       D.ignorer = Date.now() + 2500;
       if (!(await pleinEcran())) { alert("Le plein écran est impossible sur ce poste : appelle le professeur."); return; }
       D.actif = true; voile.hidden = true; masquerNav(true);
+      envoyerDefi("debut", Session.noms());
     });
+  }
+  const membre0 = () => Session.membres()[0] || {};
+  const envoyerDefi = async (type, contenu) => {
+    if (Session.DEMO) return true;
+    for (let k = 0; k < 5; k++) {
+      try {
+        const m = membre0();
+        const r = await fetch(Session.URL_SERVEUR, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "evalEvenement", id: m.id, code: m.code, evaluation: "defi-algo", type, contenu: contenu || "" }) }).then(x => x.json());
+        if (r.ok) return true;
+        if (r.erreur === "evaluation_inconnue") return "ancien";
+      } catch {}
+      await new Promise(f => setTimeout(f, 3000));
+    }
+    return false;
+  };
+  let minuterie = null;
+  // Secours tant que le script Google n'est pas mis à jour : code du professeur vérifié par le serveur.
+  function ancienDeblocage(bRep) {
+    const z = voile.querySelector("#defi-attente");
+    z.innerHTML = `<span>Code du professeur :</span> <input id="defi-code" type="password" autocomplete="new-password" inputmode="numeric" name="x${Date.now()}" style="width:8em"> <button type="button" class="bouton" id="b-defi-code">Valider</button> <span class="erreur" id="defi-err"></span>`;
+    const champ = z.querySelector("#defi-code");
+    const go = async () => {
+      D.ignorer = Date.now() + 2500; await pleinEcran();
+      const cle = champ.value.trim(); champ.value = "";
+      try {
+        const m = membre0();
+        const r = await fetch(Session.URL_SERVEUR, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "debloquer", id: m.id, code: m.code, evaluation: "defi-algo", cle }) }).then(x => x.json());
+        if (!r.ok) throw new Error(r.erreur);
+        bRep.click();
+      } catch (e) { z.querySelector("#defi-err").textContent = e.message === "code_prof" ? " Code incorrect." : " Vérification impossible."; }
+    };
+    z.querySelector("#b-defi-code").addEventListener("click", go);
+    champ.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
   }
   function verrouiller(raison) {
     D.verrouille = true; D.actif = true; masquerNav(true);
     try { localStorage.setItem(cleVerrou, "1"); } catch {}
     const heure = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-    voile.innerHTML = `<div class="carte"><h1 style="color:#b93d2a">🔒 Défi bloqué</h1><p class="grand">Vous avez quitté le défi à ${heure}${raison ? " (" + raison + ")" : ""}. Levez la main : le professeur doit venir débloquer le poste.</p><p class="doux">Vos exercices réussis sont gardés. Le chrono continue.</p><div class="champ"><label for="defi-code">Code du professeur</label><input id="defi-code" type="password" autocomplete="new-password" inputmode="numeric" name="x${Date.now()}"></div><p class="erreur" id="defi-err" hidden></p><button type="button" class="bouton plein" id="b-defi-deb">Débloquer</button></div>`;
+    voile.innerHTML = `<div class="carte"><h1 style="color:#b93d2a">🔒 Défi bloqué</h1><p class="grand">Vous avez quitté le défi à ${heure}${raison ? " (" + raison + ")" : ""}. Levez la main : le professeur va débloquer votre poste depuis son tableau de bord.</p><p class="doux">Vos exercices réussis sont gardés. Le chrono continue. Ne fermez pas cette page.</p><p class="doux" id="defi-attente">En attente du professeur…</p><button type="button" class="bouton plein" id="b-defi-rep" hidden>Reprendre le défi (plein écran)</button></div>`;
     voile.hidden = false;
-    const champ = voile.querySelector("#defi-code"), err = voile.querySelector("#defi-err"), b = voile.querySelector("#b-defi-deb");
-    const go = async () => {
+    const b = voile.querySelector("#b-defi-rep");
+    b.addEventListener("click", async () => {
       D.ignorer = Date.now() + 2500;
-      await pleinEcran();
-      const cle = champ.value.trim(); champ.value = ""; err.hidden = true; b.disabled = true;
-      try {
-        const m = Session.membres()[0] || {};
-        const r = await fetch(Session.URL_SERVEUR, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "debloquer", id: m.id, code: m.code, evaluation: "defi-algo", cle }) }).then(x => x.json());
-        if (!r.ok) throw new Error(r.erreur);
-        D.verrouille = false; D.ignorer = Date.now() + 1500;
-        try { localStorage.removeItem(cleVerrou); } catch {}
-        voile.hidden = true;
-        if (!document.fullscreenElement && !(await pleinEcran())) verrouiller("plein écran");
-      } catch (e) { err.textContent = e.message === "code_prof" ? "Code incorrect." : "Vérification impossible : connexion Internet ?"; err.hidden = false; }
-      b.disabled = false;
-    };
-    b.addEventListener("click", go);
-    champ.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
-    setTimeout(() => champ.focus(), 50);
+      const ok = await pleinEcran();
+      D.verrouille = false; D.ignorer = Date.now() + 1500;
+      try { localStorage.removeItem(cleVerrou); } catch {}
+      voile.hidden = true;
+      if (!ok && !document.fullscreenElement) verrouiller("plein écran");
+    });
+    // On enregistre la sortie sur le serveur, puis on attend que le professeur débloque.
+    clearInterval(minuterie);
+    (async () => {
+      const m = membre0();
+      // Tant que la sortie n'est pas enregistrée sur le serveur, le poste reste bloqué.
+      let r;
+      while (!(r = await envoyerDefi("incident", raison || ""))) { const z = voile.querySelector("#defi-attente"); if (z) z.textContent = "Connexion au serveur… (vérifiez Internet)"; }
+      if (r === "ancien") { ancienDeblocage(b); return; }
+      minuterie = setInterval(async () => {
+        if (!D.verrouille || window.DEFI_FINI) { clearInterval(minuterie); return; }
+        try {
+          const d = await Session.appelGet({ action: "defiEtat", id: m.id, code: m.code });
+          if (d && d.erreur === "action") { voile.querySelector("#defi-attente").textContent = "Le script Google du professeur n'est pas à jour."; return; }
+          if (d && d.ok && !d.verrouille) {
+            clearInterval(minuterie);
+            voile.querySelector("#defi-attente").textContent = "Le professeur vous a débloqués. Cliquez pour reprendre.";
+            b.hidden = false;
+          }
+        } catch {}
+      }, 4000);
+    })();
   }
   const incident = raison => { if (!D.actif || D.verrouille || window.DEFI_FINI || Date.now() < D.ignorer) return; verrouiller(raison); };
   document.addEventListener("visibilitychange", () => { if (document.hidden) incident("changement d'onglet"); });
