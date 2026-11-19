@@ -23,6 +23,9 @@
 .defi-regles { margin-top: .4rem; font-size: .95rem; } .defi-regles p { margin: .2rem 0; } .defi-regles ol { margin: .2rem 0 .3rem 1.2rem; padding: 0; }
 .defi-egalite { color: #6b5a1e; font-size: .9rem; }
 .defi-chrono { position: fixed; right: 16px; bottom: 16px; z-index: 60; border-radius: 999px; box-shadow: 0 4px 14px rgba(0,0,0,.25); max-width: calc(100vw - 32px); background: #1f3a6e; color: #fff; font-weight: 800; text-align: center; padding: .6rem 1.1rem; font-variant-numeric: tabular-nums; font-size: 1.05rem; }
+.defi-voile { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: 16px; background: rgba(22, 32, 44, .88); }
+.defi-voile .carte { max-width: 560px; background: var(--papier, #fff); color: var(--encre, #1a1a1a); padding: 24px; border-radius: 14px; display: grid; gap: 10px; }
+.defi-voile h1 { margin: 0; }
 .defi-chrono.bientot { background: #b93d2a; }
 .defi-fin { position: fixed; inset: 0; z-index: 9999; background: rgba(255,255,255,.97); color: #1a1a1a; display: grid; place-items: center; text-align: center; padding: 16px; }
 .defi-fin-titre { font-size: clamp(2.2rem, 7vw, 3.6rem); font-weight: 800; margin: 0 0 .6rem; color: #1f3a6e; }
@@ -185,7 +188,7 @@ if (DEFI) {
     chrono.textContent = r > 0 ? `🏆 Défi · ⏱ ${m}:${String(sec).padStart(2, "0")} restantes · ${ex(score())}` : `🏁 Temps écoulé · score final : ${ex(score())}`;
     chrono.classList.toggle("bientot", r > 0 && r < 5 * 60000);
     if (r === 0 && !window.DEFI_FINI) {
-      window.DEFI_FINI = true; clearInterval(tDefi);
+      window.DEFI_FINI = true; clearInterval(tDefi); window.dispatchEvent(new Event("defi-fini"));
       const v = document.createElement("div"); v.className = "defi-fin";
       v.innerHTML = `<div><p class="defi-fin-titre">🏁 Temps écoulé !</p><p class="defi-fin-score"></p><p>Mains loin du clavier : votre professeur annonce le classement.</p><button type="button" class="bouton">Revoir mes exercices</button></div>`;
       v.querySelector(".defi-fin-score").textContent = `${Session.noms()} : ${ex(score())}`;
@@ -194,6 +197,60 @@ if (DEFI) {
     }
   };
   tDefi = setInterval(tic, 1000); tic();
+
+  /* ----- Verrouillage pendant le défi : plein écran, interdiction de sortir ----- */
+  const cleVerrou = "techno:defi-verrou:" + Session.cleEquipe() + ":" + new Date().toISOString().slice(0, 10);
+  const D = { actif: false, verrouille: false, ignorer: 0 };
+  const voile = document.createElement("div"); voile.className = "defi-voile"; document.body.appendChild(voile);
+  const pleinEcran = async () => { if (document.fullscreenElement) return true; try { await document.documentElement.requestFullscreen({ navigationUI: "hide" }); return true; } catch { return false; } };
+  const liensNav = () => document.querySelectorAll(".onglets-haut a, .barre a, #b-deconnexion");
+  const masquerNav = m => liensNav().forEach(a => { a.style.visibility = m ? "hidden" : ""; });
+  function ecranEntree() {
+    voile.innerHTML = `<div class="carte"><h1>🏆 Le défi des algorithmes</h1><p class="grand">Pendant le défi, vous restez <b>sur cette page, en plein écran</b>.</p><p>Si vous en sortez (autre onglet, autre fenêtre, touche Échap), le poste est <b>bloqué</b> : il faudra appeler le professeur. Le chrono continue pendant ce temps.</p><button type="button" class="bouton plein" id="b-defi-go">Entrer dans le défi</button></div>`;
+    voile.hidden = false;
+    voile.querySelector("#b-defi-go").addEventListener("click", async () => {
+      D.ignorer = Date.now() + 2500;
+      if (!(await pleinEcran())) { alert("Le plein écran est impossible sur ce poste : appelle le professeur."); return; }
+      D.actif = true; voile.hidden = true; masquerNav(true);
+    });
+  }
+  function verrouiller(raison) {
+    D.verrouille = true; D.actif = true; masquerNav(true);
+    try { localStorage.setItem(cleVerrou, "1"); } catch {}
+    const heure = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    voile.innerHTML = `<div class="carte"><h1 style="color:#b93d2a">🔒 Défi bloqué</h1><p class="grand">Vous avez quitté le défi à ${heure}${raison ? " (" + raison + ")" : ""}. Levez la main : le professeur doit venir débloquer le poste.</p><p class="doux">Vos exercices réussis sont gardés. Le chrono continue.</p><div class="champ"><label for="defi-code">Code du professeur</label><input id="defi-code" type="password" autocomplete="new-password" inputmode="numeric" name="x${Date.now()}"></div><p class="erreur" id="defi-err" hidden></p><button type="button" class="bouton plein" id="b-defi-deb">Débloquer</button></div>`;
+    voile.hidden = false;
+    const champ = voile.querySelector("#defi-code"), err = voile.querySelector("#defi-err"), b = voile.querySelector("#b-defi-deb");
+    const go = async () => {
+      D.ignorer = Date.now() + 2500;
+      await pleinEcran();
+      const cle = champ.value.trim(); champ.value = ""; err.hidden = true; b.disabled = true;
+      try {
+        const m = Session.membres()[0] || {};
+        const r = await fetch(Session.URL_SERVEUR, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "debloquer", id: m.id, code: m.code, evaluation: "defi-algo", cle }) }).then(x => x.json());
+        if (!r.ok) throw new Error(r.erreur);
+        D.verrouille = false; D.ignorer = Date.now() + 1500;
+        try { localStorage.removeItem(cleVerrou); } catch {}
+        voile.hidden = true;
+        if (!document.fullscreenElement && !(await pleinEcran())) verrouiller("plein écran");
+      } catch (e) { err.textContent = e.message === "code_prof" ? "Code incorrect." : "Vérification impossible : connexion Internet ?"; err.hidden = false; }
+      b.disabled = false;
+    };
+    b.addEventListener("click", go);
+    champ.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    setTimeout(() => champ.focus(), 50);
+  }
+  const incident = raison => { if (!D.actif || D.verrouille || window.DEFI_FINI || Date.now() < D.ignorer) return; verrouiller(raison); };
+  document.addEventListener("visibilitychange", () => { if (document.hidden) incident("changement d'onglet"); });
+  window.addEventListener("blur", () => setTimeout(() => { if (!document.hasFocus()) incident(document.hidden ? "changement d'onglet" : "sortie de la fenêtre"); }, 300));
+  document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) incident("sortie du plein écran"); });
+  window.addEventListener("beforeunload", e => { if (D.actif && !window.DEFI_FINI) { try { localStorage.setItem(cleVerrou, "1"); } catch {} e.preventDefault(); e.returnValue = ""; } });
+  ["copy", "cut", "paste", "contextmenu"].forEach(t => document.addEventListener(t, e => { if (D.actif && !window.DEFI_FINI) e.preventDefault(); }, true));
+  window.addEventListener("defi-fini", () => { D.actif = false; voile.hidden = true; masquerNav(false); try { localStorage.removeItem(cleVerrou); } catch {} if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); });
+  if (!window.DEFI_FINI) {
+    let dejaBloque = false; try { dejaBloque = localStorage.getItem(cleVerrou) === "1"; } catch {}
+    if (dejaBloque) verrouiller("page fermée ou rechargée"); else ecranEntree();
+  }
 }
 if (!ENTR && Session.reglages().ferme) Commun.ferme("exercices.html?p=e" + P);
 $("lien-cours").href = "cours.html#" + P;
