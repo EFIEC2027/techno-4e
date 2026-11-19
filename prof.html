@@ -518,6 +518,18 @@ function dessinerBloques() {
     z.appendChild(b);
   });
 }
+const fmtMinProf = x => { const t = Math.round(x * 60), m = Math.floor(t / 60), s = t % 60; return s ? `${m} min ${String(s).padStart(2, "0")} s` : `${m} min`; };
+const tiersDe = id => !!(((BRUT && BRUT.eleves) || []).find(e => e.id === id) || {}).tiers;
+async function basculerTiers(id, actif, bouton) {
+  if (DEMO) { alert("Mode démonstration : rien n'est envoyé."); return; }
+  if (bouton) { bouton.disabled = true; bouton.textContent = "…"; }
+  try {
+    const r = await fetch(URL_SERVEUR, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "prof", cle: CLE, op: "tiersTemps", id, actif }) });
+    const d = await r.json();
+    if (!d.ok) alert(d.erreur === "operation" ? "Votre script Google n'est pas à jour : recollez Code.gs et déployez une nouvelle version." : "Impossible : " + d.erreur);
+  } catch { alert("Connexion impossible."); }
+  await charger();
+}
 async function debloquerEleve(id, ev, bouton) {
   if (DEMO) { alert("Mode démonstration : rien n'est envoyé."); return; }
   if (bouton) { bouton.disabled = true; bouton.textContent = "Déblocage…"; }
@@ -1036,6 +1048,16 @@ function dessinerEvaluation(liste) {
     { cle: "statut", titre: "Statut", sensDefaut: "asc", valeur: x => ordreStatut[x.statut],
       rendu: (td, x) => { const [c, l] = libStatut[x.statut]; td.innerHTML = `<span class="etat ${c}"></span>`; td.firstChild.textContent = l + (x.rendu && x.rendu.auto ? " (temps écoulé)" : "");
         if (x.statut === "bloque") { const b = document.createElement("button"); b.type = "button"; b.className = "bouton plein"; b.style.cssText = "margin-left:.4rem;padding:.2rem .6rem;font-size:.85rem"; b.textContent = "Débloquer"; b.addEventListener("click", ev => { ev.stopPropagation(); debloquerEleve(x.s.id, meta.id, b); }); td.appendChild(b); } } },
+    { cle: "temps", titre: "Tiers-temps", valeur: x => tiersDe(x.s.id) ? 1 : 0,
+      rendu: (td, x) => {
+        const t = tiersDe(x.s.id);
+        const b = document.createElement("button"); b.type = "button"; b.className = t ? "bouton plein" : "bouton";
+        b.style.cssText = "padding:.2rem .6rem;font-size:.85rem;white-space:nowrap";
+        b.textContent = t ? `⅓ temps ✓ (+${fmtMinProf(meta.duree / 3)})` : "⅓ temps";
+        b.title = t ? "Tiers-temps activé pour toutes les évaluations. Cliquer pour le retirer." : `Activer le tiers-temps pour cet élève (+${fmtMinProf(meta.duree / 3)} ici, et pour toutes les évaluations)`;
+        b.addEventListener("click", ev => { ev.stopPropagation(); basculerTiers(x.s.id, !t, b); });
+        td.appendChild(b);
+      } },
     { cle: "incidents", titre: "Incidents", valeur: x => x.incidents.length,
       rendu: (td, x) => { td.textContent = x.incidents.length || ""; td.title = x.incidents.map(i => `${dateHeure(i.t)} : ${NOMS_INCIDENTS[i.type] || i.type}`).join("\n"); if (x.incidents.length) td.style.color = "var(--ko)"; td.style.fontWeight = "700"; } },
     { cle: "note", titre: "Note / 20", valeur: x => noteSur20(x.rendu),

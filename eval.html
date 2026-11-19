@@ -491,6 +491,7 @@ async function charger() {
     S.questions = tirerQuestions(await dechiffrer(S.meta, d.eval.cle));
     S.decalage = d.eval.maintenant - Date.now();
     S.debut = d.eval.debut;
+    S.tiers = !!d.tiers; S.bonus = S.tiers ? S.meta.duree / 3 : 0;
     if (S.meta.bilan) {
       // Diagnostic : 22 min en tout à partir de la connexion (évaluation + bilan).
       const cleCo = "techno:diagco:" + S.eleve.id + ":" + S.meta.id + ":" + S.meta.iv;
@@ -526,8 +527,9 @@ function info(titre, texte) {
 function consignes() {
   $("cs-titre").textContent = S.meta.titre;
   $("cs-eleve").textContent = `${S.eleve.prenom} · ${S.eleve.classe}`;
-  $("cs-duree").textContent = S.reprise ? `${S.meta.duree} min (déjà commencée)` : `${S.meta.duree} min`;
-  if (S.meta.bilan) $("cs-duree").textContent = `${S.meta.finApres || 22} min en tout : ${S.meta.duree} min maximum pour répondre, puis ton bilan. Le temps compte depuis ta connexion : commence vite !` + (S.reprise ? " (déjà commencée)" : "");
+  const plus = S.bonus ? ` + ${fmtMin(S.bonus)} de temps supplémentaire (tiers-temps)` : "";
+  $("cs-duree").textContent = S.reprise ? `${S.meta.duree} min${plus} (déjà commencée)` : `${S.meta.duree} min${plus}`;
+  if (S.meta.bilan) $("cs-duree").textContent = `${fmtMin((S.meta.finApres || 22) + (S.bonus || 0))} en tout : ${fmtMin(S.meta.duree + (S.bonus || 0))} maximum pour répondre${S.bonus ? " (tiers-temps compris)" : ""}, puis ton bilan. Le temps compte depuis ta connexion : commence vite !` + (S.reprise ? " (déjà commencée)" : "");
   $("cs-questions").textContent = `${S.meta.nb} questions · ${S.meta.total} points`;
   $("b-commencer").textContent = S.reprise ? "Reprendre l'évaluation" : "Commencer l'évaluation";
   montrer("ecran-consignes");
@@ -689,10 +691,12 @@ async function executer() {
 $("b-executer").addEventListener("click", executer);
 
 /* ---------- Chronomètre ---------- */
+const fmtMin = x => { const t = Math.round(x * 60), m = Math.floor(t / 60), s = t % 60; return s ? `${m} min ${String(s).padStart(2, "0")} s` : `${m} min`; };
 function tic() {
   if (!S.debut || S.termine) return;
-  let limite = S.debut + S.meta.duree * 60000;
-  if (S.meta.bilan && S.connexion) limite = Math.min(limite, S.connexion + ((S.meta.finApres || 22) - S.meta.bilan) * 60000);
+  const bonus = S.bonus || 0;   // tiers-temps : un tiers de la durée de l'épreuve en plus
+  let limite = S.debut + (S.meta.duree + bonus) * 60000;
+  if (S.meta.bilan && S.connexion) limite = Math.min(limite, S.connexion + ((S.meta.finApres || 22) - S.meta.bilan + bonus) * 60000);
   const reste = Math.max(0, limite - maintenant());
   const m = Math.floor(reste / 60000), s = Math.floor(reste / 1000) % 60;
   $("ep-chrono").textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
@@ -887,7 +891,7 @@ function afficherBilan() {
   // 22 min en tout depuis la connexion : 3 min de bilan, puis (s'il reste du temps) exercices de remédiation,
   // puis « Déconnecte-toi et appelle ton professeur ». Le chrono de l'épreuve garantit les 3 min de bilan.
   const depart = S.connexion || S.debut;
-  const fin22 = depart ? depart - (S.decalage || 0) + (S.meta.finApres || 22) * 60000 : Date.now() + duree * 1000;
+  const fin22 = depart ? depart - (S.decalage || 0) + ((S.meta.finApres || 22) + (S.bonus || 0)) * 60000 : Date.now() + duree * 1000;
   const finLecture = Math.min(Date.now() + duree * 1000, fin22);
   const faibles = aTravailler.map(n => notions[n].revoir && "r" + notions[n].revoir.module).filter(Boolean).join(",");
   try { localStorage.setItem("techno:faibles:" + S.eleve.id, faibles); localStorage.setItem("techno:fin22:" + S.eleve.id, String(fin22)); } catch {}
