@@ -17,6 +17,11 @@ body { min-height: 100vh; }
 .onglets { display: flex; gap: .3rem; padding: 0 16px; background: var(--papier); border-bottom: 1px solid var(--trait); overflow-x: auto; }
 .onglets a { padding: .75rem 1rem; font-weight: 700; text-decoration: none; color: var(--doux); border-bottom: 3px solid transparent; white-space: nowrap; }
 .onglets a:hover { color: var(--encre); }
+.onglets a.onglet-defi { color: #7a5800; background: #ffe9a8; border-radius: 8px 8px 0 0; }
+.onglets a.onglet-defi:hover { background: #ffdf80; }
+.bandeau-defi-accueil { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: #fff4cc; border: 2px solid #e6c35c; color: #3d3313; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; }
+.bandeau-defi-accueil p { margin: 0; }
+.bandeau-defi-accueil a { background: #c98f00; color: #fff; font-weight: 800; text-decoration: none; padding: .55rem 1.1rem; border-radius: 8px; white-space: nowrap; }
 .onglets a.actif { color: var(--accent); border-bottom-color: var(--accent); }
 main { max-width: 1040px; margin: 0 auto; padding: 1.8rem 16px 4rem; display: grid; gap: 1.6rem; }
 .bonjour h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; }
@@ -114,10 +119,12 @@ main { max-width: 1040px; margin: 0 auto; padding: 1.8rem 16px 4rem; display: gr
     <a href="exercices.html?p=blocs">Programmer un objet</a>
     <a href="cours.html#algo">📖 Cours algorithmes</a>
     <a href="cours.html#blocs">📖 Cours programmation</a>
+    <a href="exercices.html?p=dalgo" class="onglet-defi">🏆 Défi</a>
     <a href="#entrainement">🏋️ Entraînement</a>
     <a href="#evaluations">Évaluations</a>
   </nav>
   <main>
+    <div class="bandeau-defi-accueil"><p><b>🏆 Le défi des algorithmes</b> · en binôme, réussissez le plus d'exercices possible en 55 minutes (65 exercices).</p><a href="exercices.html?p=dalgo">Lancer le défi</a></div>
     <div class="bonjour">
       <h1 id="bonjour">Bonjour !</h1>
       <p>Commence par l'étape 1 : la chaîne d'information d'un objet et ses algorithmes, écrits sous forme d'algorigrammes. Ensuite, programme des objets techniques avec des blocs : éclairage automatique, feu tricolore, portail, station météo…</p>
@@ -186,8 +193,7 @@ function majProgression() {
   if (o) { const r = Session.reussisEquipe(); const suite = o.ids.find(x => !r.has(x)); Objectif.bandeau(document.querySelector("#app main"), o, ms, Session.progression, suite ? `exercices.html?p=${o.obj.parcours}&exo=${suite}` : null); }
   Accueil.dessiner({ zone: document.querySelector("#app main"), cle: ms.map(m => m.id).sort().join("+"), reussis: Session.reussisEquipe(), tentes: Session.tentesEquipe(), conseils: reg.conseils,
     parcours: [{ nom: "Algorithmes", modules: PARCOURS_ALGO, lien: id => "exercices.html?p=algo&exo=" + id }, { nom: "Programmer un objet", modules: PARCOURS_BLOCS, lien: id => "exercices.html?p=blocs&exo=" + id }],
-    entrainement: [{ nom: "🏆 Le défi des algorithmes (en binôme, 55 min)", modules: window.PARCOURS_DEFI_ALGO || [], lien: "exercices.html?p=dalgo", lienExo: id => "exercices.html?p=dalgo&exo=" + id },
-                   { nom: "Algorithmes", modules: window.PARCOURS_ENTR_ALGO || [], lien: "exercices.html?p=ealgo", lienExo: id => "exercices.html?p=ealgo&exo=" + id },
+    entrainement: [{ nom: "Algorithmes", modules: window.PARCOURS_ENTR_ALGO || [], lien: "exercices.html?p=ealgo", lienExo: id => "exercices.html?p=ealgo&exo=" + id },
                    { nom: "Programmer un objet", modules: window.PARCOURS_ENTR_BLOCS || [], lien: "exercices.html?p=eblocs", lienExo: id => "exercices.html?p=eblocs&exo=" + id },
                    { nom: "🎯 Mes points faibles (après le diagnostic, à la maison)", modules: window.PARCOURS_REMED_ALGO || [], lien: "exercices.html?p=ralgo", lienExo: id => "exercices.html?p=ralgo&exo=" + id }] });
   document.querySelectorAll(".ferme-note").forEach(n => n.remove());
