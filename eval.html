@@ -47,6 +47,8 @@ h1, h2 { font-family: var(--f-titre); line-height: 1.15; margin: 0; text-wrap: b
 .erreur { color: var(--ko); background: var(--ko-doux); border-radius: 8px; padding: .6rem .8rem; }
 .regles { margin: 0; padding-left: 1.2rem; display: grid; gap: .35rem; }
 .regles strong { color: var(--ko); }
+#cs-regles-plus { background: #fff4cc; color: #3d3313; border: 2px solid #e6c35c; border-radius: 10px; padding: .8rem 1rem .8rem 2rem; font-size: 1.02rem; }
+@media (prefers-color-scheme: dark) { #cs-regles-plus { background: #3b3420; color: #f3e6bf; border-color: #8a7330; } }
 .fiche { display: grid; grid-template-columns: auto 1fr; gap: .2rem 1rem; background: var(--fond); border-radius: 10px; padding: .8rem 1rem; }
 .fiche dt { color: var(--doux); }
 .fiche dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -234,11 +236,12 @@ pre.programme { font-size: 1rem; line-height: 1.6; }
       <dt>Durée</dt><dd id="cs-duree"></dd>
       <dt>Questions</dt><dd id="cs-questions"></dd>
     </dl>
+    <ul class="regles" id="cs-regles-plus" hidden></ul>
     <ul class="regles">
       <li>L'évaluation s'affiche <strong>en plein écran</strong>.</li>
       <li>Si tu quittes la page (autre onglet, autre fenêtre, touche <kbd>Échap</kbd>, rechargement), ton évaluation est <strong>bloquée</strong> et ton professeur est prévenu.</li>
       <li>Le copier-coller est désactivé.</li>
-      <li>Tu peux <strong>exécuter</strong> ton code autant que tu veux. Tu ne sauras pas si ta réponse est juste : c'est ton professeur qui verra les résultats.</li>
+      <li id="cs-regle-code">Tu peux <strong>exécuter</strong> ton code autant que tu veux. Tu ne sauras pas si ta réponse est juste : c'est ton professeur qui verra les résultats.</li>
       <li>Tes réponses sont enregistrées au fur et à mesure. À la fin du temps, la copie est rendue automatiquement.</li>
     </ul>
     <p class="chargement" id="cs-python">Préparation de Python…</p>
@@ -268,7 +271,7 @@ pre.programme { font-size: 1rem; line-height: 1.6; }
         <pre class="programme" id="q-programme" hidden></pre>
         <div class="qcm" id="q-qcm" role="radiogroup" aria-label="Choisis une réponse" hidden></div>
         <div class="reponse-texte" id="q-texte" hidden>
-          <label for="q-reponse">Ta réponse (une ligne par ligne affichée)</label>
+          <label for="q-reponse">Ta réponse</label>
           <textarea id="q-reponse" spellcheck="false" autocomplete="off"></textarea>
         </div>
         <div id="q-code" hidden>
@@ -332,7 +335,7 @@ pre.programme { font-size: 1rem; line-height: 1.6; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
 <script src="config.js?v=20261015b"></script>
 <script src="blocs-moteur.js?v=20261015b"></script>
-<script src="evaluations.js?v=20261110e"></script>
+<script src="evaluations.js?v=20261125a"></script>
 <script src="verif.js?v=20261015b"></script>
 <script src="schema.js?v=20261015b"></script>
 <script>
@@ -417,10 +420,11 @@ function generateur(g) {
 function tirerQuestions(brutes) {
   const alea = generateur(graine(S.eleve.id + ":" + S.meta.id));
   const ordre = brutes.map((_, i) => i);
-  for (let i = ordre.length - 1; i > 0; i--) { const j = Math.floor(alea() * (i + 1)); [ordre[i], ordre[j]] = [ordre[j], ordre[i]]; }
+  // ordreFixe : les questions restent dans l'ordre (des plus faciles aux plus difficiles).
+  if (!S.meta.ordreFixe) for (let i = ordre.length - 1; i > 0; i--) { const j = Math.floor(alea() * (i + 1)); [ordre[i], ordre[j]] = [ordre[j], ordre[i]]; }
   return ordre.map(k => {
     const q = brutes[k], v = Math.floor(alea() * q.variantes.length);
-    const choisie = { ...q.variantes[v], points: q.points, titre: q.titre, notion: q.notion, rappel: q.rappel, revoir: q.revoir, num: k + 1, version: "ABC"[v] };
+    const choisie = { ...q.variantes[v], points: q.points, titre: q.titre, notion: q.notion, rappel: q.rappel, revoir: q.revoir, num: k + 1, version: "ABCDEFGH"[v] };
     if (choisie.type === "qcm") {
       choisie.bonneReponse = choisie.choix[choisie.bonne];
       const c = [...choisie.choix];
@@ -531,6 +535,10 @@ function consignes() {
   $("cs-duree").textContent = S.reprise ? `${S.meta.duree} min${plus} (déjà commencée)` : `${S.meta.duree} min${plus}`;
   if (S.meta.bilan) $("cs-duree").textContent = `${fmtMin((S.meta.finApres || 22) + (S.bonus || 0))} en tout : ${fmtMin(S.meta.duree + (S.bonus || 0))} maximum pour répondre${S.bonus ? " (tiers-temps compris)" : ""}, puis ton bilan. Le temps compte depuis ta connexion : commence vite !` + (S.reprise ? " (déjà commencée)" : "");
   $("cs-questions").textContent = `${S.meta.nb} questions · ${S.meta.total} points`;
+  // Consignes propres à cette évaluation (affichées en premier, en évidence).
+  $("cs-regles-plus").hidden = !(S.meta.consignes || []).length;
+  $("cs-regles-plus").innerHTML = (S.meta.consignes || []).map(c => `<li>${c}</li>`).join("");
+  $("cs-regle-code").hidden = !(S.questions || []).some(q => q.type === "code");
   $("b-commencer").textContent = S.reprise ? "Reprendre l'évaluation" : "Commencer l'évaluation";
   montrer("ecran-consignes");
   // Pas de question de code en 4e : rien à préparer.
@@ -710,6 +718,8 @@ function incident(type, force) {
   if (!S.actif || S.termine || S.verrouille || (!force && Date.now() < S.ignorerJusqua)) return;
   S.incidentsLocaux = (S.incidentsLocaux || 0) + 1;
   evenement("incident", { type, question: S.actuelle + 1 });
+  // Nombre de sorties limité : à la dernière sortie autorisée, la copie est rendue telle quelle.
+  if (S.meta.maxSorties && S.incidentsLocaux >= S.meta.maxSorties) { S.arretSorties = true; rendre("sorties"); return; }
   verrouiller(type);
 }
 function verrouiller(type, depuisServeur) {
@@ -810,7 +820,7 @@ async function rendre(auto) {
   S.actif = false;
   $("verrou").hidden = true;
   $("confirmer").hidden = true;
-  info("Correction en cours…", "Ne ferme pas la page.");
+  info(S.arretSorties ? `Tu es sorti(e) de l'évaluation ${S.meta.maxSorties} fois` : "Correction en cours…", S.arretSorties ? "Ta copie est rendue avec les réponses déjà données : ta note s'arrête ici. Lève la main pour prévenir ton professeur." : "Ne ferme pas la page.");
   $("b-reessayer").hidden = true;
   if (python) await python.pret;
   const details = [];
