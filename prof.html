@@ -159,6 +159,7 @@ select#choix-eleve { border: 1.5px solid var(--trait); border-radius: 8px; paddi
 <style>
 #bloques { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; padding: .7rem 1rem; background: #fdecea; border-bottom: 2px solid #b93d2a; }
 #bloques.calme { background: #e3f4ea; border-bottom-color: #1d7a46; }
+.maitrise { display: inline-block; min-width: 2.6em; text-align: center; padding: .15rem .5rem; border-radius: 99px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .logo-efi { width: 58px; height: 58px; border-radius: 10px; flex-shrink: 0; display: block; }
 .logo-efi.grand { width: 150px; height: 150px; border-radius: 20px; margin-bottom: .7rem; }
 .logo-efi.titre { display: inline-block; vertical-align: middle; width: 56px; height: 56px; margin-right: .5rem; }
@@ -517,6 +518,13 @@ function dessinerBloques() {
     b.addEventListener("click", () => debloquerEleve(x.id, x.ev, b));
     z.appendChild(b);
   });
+}
+/* Niveaux de maîtrise du socle (couleurs Pronote). Seuils choisis par le professeur : 7, 11 et 16. */
+function niveauMaitrise(n) {
+  if (n >= 16) return { nom: "Très bonne maîtrise", fond: "#1b7a3a", texte: "#fff" };
+  if (n >= 11) return { nom: "Maîtrise satisfaisante", fond: "#5cb85c", texte: "#fff" };
+  if (n >= 7) return { nom: "Maîtrise fragile", fond: "#f0c419", texte: "#3d3313", label: "#9a7200" };
+  return { nom: "Maîtrise insuffisante", fond: "#d9372a", texte: "#fff" };
 }
 const fmtMinProf = x => { const t = Math.round(x * 60), m = Math.floor(t / 60), s = t % 60; return s ? `${m} min ${String(s).padStart(2, "0")} s` : `${m} min`; };
 const tiersDe = id => !!(((BRUT && BRUT.eleves) || []).find(e => e.id === id) || {}).tiers;
@@ -1050,18 +1058,22 @@ function dessinerEvaluation(liste) {
         if (x.statut === "bloque") { const b = document.createElement("button"); b.type = "button"; b.className = "bouton plein"; b.style.cssText = "margin-left:.4rem;padding:.2rem .6rem;font-size:.85rem"; b.textContent = "Débloquer"; b.addEventListener("click", ev => { ev.stopPropagation(); debloquerEleve(x.s.id, meta.id, b); }); td.appendChild(b); } } },
     { cle: "temps", titre: "Tiers-temps", valeur: x => tiersDe(x.s.id) ? 1 : 0,
       rendu: (td, x) => {
-        const t = tiersDe(x.s.id);
-        const b = document.createElement("button"); b.type = "button"; b.className = t ? "bouton plein" : "bouton";
-        b.style.cssText = "padding:.2rem .6rem;font-size:.85rem;white-space:nowrap";
-        b.textContent = t ? `⅓ temps ✓ (+${fmtMinProf(meta.duree / 3)})` : "⅓ temps";
-        b.title = t ? "Tiers-temps activé pour toutes les évaluations. Cliquer pour le retirer." : `Activer le tiers-temps pour cet élève (+${fmtMinProf(meta.duree / 3)} ici, et pour toutes les évaluations)`;
-        b.addEventListener("click", ev => { ev.stopPropagation(); basculerTiers(x.s.id, !t, b); });
-        td.appendChild(b);
+        // Affichage seul : la liste des élèves au tiers-temps est dans le script Google (rien à cocher).
+        if (!tiersDe(x.s.id)) return;
+        td.textContent = `⅓ temps (+${fmtMinProf(meta.duree / 3)})`;
+        td.style.cssText = "font-weight:700;color:var(--accent);white-space:nowrap";
       } },
     { cle: "incidents", titre: "Incidents", valeur: x => x.incidents.length,
       rendu: (td, x) => { td.textContent = x.incidents.length || ""; td.title = x.incidents.map(i => `${dateHeure(i.t)} : ${NOMS_INCIDENTS[i.type] || i.type}`).join("\n"); if (x.incidents.length) td.style.color = "var(--ko)"; td.style.fontWeight = "700"; } },
     { cle: "note", titre: "Note / 20", valeur: x => noteSur20(x.rendu),
-      rendu: (td, x) => { td.textContent = x.rendu ? String(noteSur20(x.rendu)).replace(".", ",") : ""; td.style.fontWeight = "700"; } },
+      rendu: (td, x) => {
+        if (!x.rendu) return;
+        const n = noteSur20(x.rendu), m = niveauMaitrise(n);
+        td.innerHTML = `<span class="maitrise" style="background:${m.fond};color:${m.texte}" title="${m.nom}"></span>`;
+        td.firstChild.textContent = String(n).replace(".", ",");
+      } },
+    { cle: "maitrise", titre: "Maîtrise", valeur: x => x.rendu ? noteSur20(x.rendu) : -1,
+      rendu: (td, x) => { if (!x.rendu) return; const m = niveauMaitrise(noteSur20(x.rendu)); td.textContent = m.nom; td.style.cssText = `white-space:nowrap;font-weight:700;color:${m.label || m.fond}`; } },
     ...Array.from({ length: meta.nb }, (_, k) => ({ cle: "q" + k, titre: "Q" + (k + 1), valeur: x => { const d = detailQ(x.rendu, k); return d ? d.points : null; },
       rendu: (td, x) => { const d = detailQ(x.rendu, k); td.textContent = d ? String(d.points).replace(".", ",") + (d.v ? " " + d.v : "") : ""; if (d) { td.style.color = d.points === d.max ? "var(--ok)" : d.points === 0 ? "var(--ko)" : ""; td.title = d.v ? `version ${d.v}` : ""; } } })),
     { cle: "duree", titre: "Durée", valeur: x => x.debut ? ((x.rendu ? x.rendu.t : Date.now()) - x.debut) : null,
