@@ -32,7 +32,7 @@ window.EVALUATIONS = [
  {
   "id": "sommative",
   "titre": "Évaluation sommative : les algorithmes",
-  "duree": 25,
+  "duree": 40,
   "nb": 13,
   "total": 20,
   "maxSorties": 3,
